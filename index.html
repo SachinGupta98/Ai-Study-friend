@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Study Assistant</title>
+    
+    <!-- PWA Manifest and Theme Color -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="/icon-192.svg">
+
+    <!-- KaTeX for Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0KOVEMVIARBEGEOOfW+8IsCFtwYdIJhpPBEghCxgdbDsXOKa2GPj" crossorigin="anonymous">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* --- THEME ENGINE --- */
+      :root {
+        /* NEW "Latte" Light Theme Colors */
+        --color-background-start: #f7f3f0; /* Warm off-white */
+        --color-background-end: #efebe9; /* Slightly darker warm gray */
+        --color-text-primary: #44403c; /* stone-700 - Dark warm gray/brown */
+        --color-text-secondary: #78716c; /* stone-500 - Medium warm gray */
+        --color-text-on-accent: #ffffff; /* White text for buttons */
+        --color-surface-primary: #fdfcfb; /* A very light cream for cards */
+        --color-surface-secondary: #f7f3f0; /* Warm off-white for inputs */
+        --color-surface-tertiary: #e7e5e4; /* stone-200 - for disabled states */
+        --color-border: #d6d3d1; /* stone-300 - soft border */
+        --color-accent-text: #0891b2; /* cyan-600 */
+        --color-accent-bg: #06b6d4; /* cyan-500 */
+        --color-accent-bg-hover: #0891b2; /* cyan-600 */
+        --color-accent-ring: #06b6d4; /* cyan-500 */
+        --color-success-text: #166534; /* green-800 */
+        --color-success-bg: #dcfce7; /* green-100 */
+        --color-success-border: #86efac; /* green-300 */
+        --color-danger-text: #991b1b; /* red-800 */
+        --color-danger-bg: #fee2e2; /* red-100 */
+        --color-danger-border: #fca5a5; /* red-300 */
+        --color-warning-text: #92400e; /* amber-800 */
+        --color-warning-bg: #f59e0b; /* amber-500 */
+        --color-warning-bg-hover: #d97706; /* amber-600 */
+        --color-scrollbar-track: #e7e5e4; /* stone-200 */
+        --color-scrollbar-thumb: #d6d3d1; /* stone-300 */
+        --color-scrollbar-thumb-hover: #a8a29e; /* stone-400 */
+      }
+
+      .dark {
+        /* Dark Theme Colors */
+        --color-background-start: #0f172a; /* slate-900 */
+        --color-background-end: #1e293b; /* slate-800 */
+        --color-text-primary: #f1f5f9; /* slate-100 */
+        --color-text-secondary: #94a3b8; /* slate-400 */
+        --color-text-on-accent: #f1f5f9; /* slate-100 for buttons */
+        --color-surface-primary: #1e293b; /* slate-800 */
+        --color-surface-secondary: #334155; /* slate-700 */
+        --color-surface-tertiary: #475569; /* slate-600 */
+        --color-border: #334155; /* slate-700 */
+        --color-accent-text: #22d3ee; /* cyan-400 */
+        --color-accent-bg: #0891b2; /* cyan-600 */
+        --color-accent-bg-hover: #0e7490; /* cyan-700 */
+        --color-accent-ring: #22d3ee; /* cyan-400 */
+        --color-success-text: #86efac; /* green-300 */
+        --color-success-bg: rgba(22, 163, 74, 0.2);
+        --color-success-border: #166534; /* green-800 */
+        --color-danger-text: #fca5a5; /* red-300 */
+        --color-danger-bg: rgba(185, 28, 28, 0.2);
+        --color-danger-border: #991b1b; /* red-800 */
+        --color-warning-text: #fbbf24; /* amber-400 */
+        --color-warning-bg: #f59e0b; /* amber-500 */
+        --color-warning-bg-hover: #d97706; /* amber-600 */
+        --color-scrollbar-track: #1e293b;
+        --color-scrollbar-thumb: #475569;
+        --color-scrollbar-thumb-hover: #64748b;
+      }
+
+      body {
+        background-image: linear-gradient(to bottom right, var(--color-background-start), var(--color-background-end));
+        color: var(--color-text-primary);
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+
+      /* Scrollbar Styles */
+      ::-webkit-scrollbar { width: 8px; height: 8px; }
+      ::-webkit-scrollbar-track { background: var(--color-scrollbar-track); }
+      ::-webkit-scrollbar-thumb { background: var(--color-scrollbar-thumb); border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: var(--color-scrollbar-thumb-hover); }
+      
+      /* Global Animations */
+      @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+      .fade-in { animation: fade-in 0.5s ease-out forwards; }
+      @keyframes slide-in-bottom { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+      .slide-in-bottom { animation: slide-in-bottom 0.4s ease-out forwards; }
+      @keyframes pulse-dot { 0%, 100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.1); opacity: 1; } }
+      .pulse-1 { animation: pulse-dot 1.2s infinite ease-in-out; animation-delay: 0s; }
+      .pulse-2 { animation: pulse-dot 1.2s infinite ease-in-out; animation-delay: 0.2s; }
+      .pulse-3 { animation: pulse-dot 1.2s infinite ease-in-out; animation-delay: 0.4s; }
+      
+      @keyframes flash-highlight {
+        0% { background-color: transparent; }
+        50% { background-color: var(--color-success-bg); }
+        100% { background-color: transparent; }
+      }
+      .flash-highlight {
+        animation: flash-highlight 0.7s ease-out;
+      }
+
+      /* Enhanced Table & Math Styling */
+      .prose .table-wrapper {
+        overflow-x: auto;
+        margin-top: 1.5em;
+        margin-bottom: 1.5em;
+        border: 1px solid var(--color-border);
+        border-radius: 0.75rem; /* Slightly more rounded */
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05); /* Subtle shadow for depth */
+      }
+      .dark .prose .table-wrapper {
+        box-shadow: none;
+      }
+      .prose table {
+        width: 100%;
+        border-collapse: separate; /* Important for border-radius on th/td */
+        border-spacing: 0;
+        font-size: 0.9em;
+        margin: 0;
+      }
+      .prose th, .prose td {
+        padding: 0.75rem 1rem; /* Increased padding */
+        text-align: left;
+        vertical-align: top;
+        border-bottom: 1px solid var(--color-border);
+      }
+      .prose thead th {
+        background-color: var(--color-surface-secondary);
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--color-text-secondary);
+        border-bottom-width: 2px;
+        position: sticky; /* Sticky header for scrollable tables */
+        top: 0;
+        z-index: 1; /* Ensure header is above content */
+      }
+      /* A slightly darker background for sticky header in dark mode */
+      .dark .prose thead th {
+        background-color: #283447; /* A value between slate-700 and slate-800 */
+      }
+      /* Rounded corners for the table */
+      .prose thead th:first-child { border-top-left-radius: 0.65rem; }
+      .prose thead th:last-child { border-top-right-radius: 0.65rem; }
+      .prose tbody tr:last-child td { border-bottom: none; }
+      .prose tbody tr:last-child td:first-child { border-bottom-left-radius: 0.65rem; }
+      .prose tbody tr:last-child td:last-child { border-bottom-right-radius: 0.65rem; }
+      /* Interactive hover effect, removing alternating rows */
+      .prose tbody tr {
+        transition: background-color 0.15s ease-in-out;
+      }
+      .prose tbody tr:hover {
+        background-color: var(--color-surface-secondary);
+      }
+      .dark .prose tbody tr:hover {
+        background-color: rgba(255, 255, 255, 0.035);
+      }
+
+      /* KaTeX font-size adjustment */
+      .katex { font-size: 1.1em !important; }
+    </style>
+    <script>
+      // IIFE to set theme before React mounts, preventing FOUC
+      (function() {
+        const theme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (theme === 'dark' || (!theme && prefersDark)) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      })();
+    </script>
+    <script type="importmap">
+      {
+        "imports": {
+          "react/": "https://aistudiocdn.com/react@^19.2.0/",
+          "react": "https://aistudiocdn.com/react@^19.2.0",
+          "@google/genai": "https://aistudiocdn.com/@google/genai@^1.28.0",
+          "react-dom": "https://aistudiocdn.com/react-dom@^19.2.0",
+          "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+          "react-markdown": "https://esm.sh/react-markdown@9?deps=react@19",
+          "remark-gfm": "https://esm.sh/remark-gfm@4",
+          "remark-math": "https://esm.sh/remark-math@6",
+          "rehype-katex": "https://esm.sh/rehype-katex@7?deps=katex@0.16.9",
+          "jspdf": "https://esm.sh/jspdf@2.5.1"
+        }
+      }
+    </script>
+  <link rel="stylesheet" href="/index.css">
+</head>
+  <body class="transition-colors duration-300">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
