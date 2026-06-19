@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- ── Primary Meta ──────────────────────────────────────────── -->
+    <title>Vidya AI — Smart Study Assistant for Students</title>
+    <meta name="description" content="Vidya AI is your personal AI-powered study assistant. Generate study plans, chat with an AI tutor, solve doubts, take quizzes, and track your progress — all in one place." />
+    <meta name="keywords" content="AI study assistant, JEE preparation, NEET study, NCERT, B.Tech, AI tutor, study planner, quiz generator, Vidya AI" />
+    <meta name="author" content="Vidya AI" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- ── Favicon (inline SVG — works everywhere) ───────────────── -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230f172a'/%3E%3Cpath d='M50 22C55 19 65 18 72 18C73.8 18 75.6 18.2 77 18.5M23 18.5C24.4 18.2 26.2 18 28 18C37 18 50 22.8 50 22.8M50 22V78M50 22.8C50 22.8 37 18 28 18C26.2 18 24.4 18.2 23 18.5M23 18.5V72C24.5 71.6 26.2 71.5 28 71.5C37 71.5 50 75 50 75M77 18.5V72C75.5 71.6 73.5 71.5 72 71.5C63 71.5 50 75 50 75' stroke='%2322d3ee' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='72' cy='35' r='3' fill='%2322d3ee' opacity='0.8'/%3E%3Ccircle cx='63' cy='26' r='2' fill='%2238bdf8' opacity='0.6'/%3E%3Ccircle cx='78' cy='45' r='1.5' fill='%2207aec2' opacity='0.7'/%3E%3C/svg%3E" />
+
+    <!-- ── Apple Touch Icons (iOS home screen) ────────────────────── -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/icon.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icon.png" />
+    <link rel="apple-touch-icon" sizes="120x120" href="/icon.png" />
+    <link rel="apple-touch-icon" sizes="76x76" href="/icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Vidya AI" />
+
+    <!-- ── Android / PWA ─────────────────────────────────────────── -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#3b82f6" media="(prefers-color-scheme: light)" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="Vidya AI" />
+
+    <!-- ── Open Graph (WhatsApp / Facebook link previews) ────────── -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Vidya AI — Smart Study Assistant" />
+    <meta property="og:description" content="AI-powered study planner, tutor & quiz generator for JEE, NEET, NCERT and B.Tech students." />
+    <meta property="og:image" content="/icon.png" />
+    <meta property="og:url" content="https://vidyaai.app" />
+    <meta property="og:site_name" content="Vidya AI" />
+
+    <!-- ── Twitter Card ──────────────────────────────────────────── -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Vidya AI — Smart Study Assistant" />
+    <meta name="twitter:description" content="AI-powered study planner, tutor & quiz generator for students." />
+    <meta name="twitter:image" content="/icon.png" />
+
+    <!-- ── Microsoft Tiles (Windows) ─────────────────────────────── -->
+    <meta name="msapplication-TileColor" content="#0f172a" />
+    <meta name="msapplication-TileImage" content="/icon.png" />
+    <meta name="msapplication-navbutton-color" content="#0ea5e9" />
+
+    <!-- ── KaTeX for Math Rendering ──────────────────────────────── -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0KOVEMVIARBEGEOOfW+8IsCFtwYdIJhpPBEghCxgdbDsXOKa2GPj" crossorigin="anonymous">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* --- THEME ENGINE --- */
+      :root {
+        --color-background-start: #ffffff;
+        --color-background-end: #f8fafc;
+        --color-text-primary: #0f172a;
+        --color-text-secondary: #64748b;
+        --color-text-on-accent: #ffffff;
+        --color-surface-primary: #ffffff;
+        --color-surface-secondary: #f1f5f9;
+        --color-surface-tertiary: #e2e8f0;
+        --color-border: #e2e8f0;
+        --color-accent-text: #2563eb;
+        --color-accent-bg: #3b82f6;
+        --color-accent-bg-hover: #2563eb;
+        --color-accent-ring: #60a5fa;
+        --color-accent-shadow: rgba(59, 130, 246, 0.4);
+        --color-success-text: #15803d;
+        --color-success-bg: #dcfce7;
+        --color-success-border: #86efac;
+        --color-danger-text: #b91c1c;
+        --color-danger-bg: #fee2e2;
+        --color-danger-border: #fca5a5;
+        --color-warning-text: #b45309;
+        --color-warning-bg: #fef3c7;
+        --color-warning-bg-hover: #d97706;
+        --color-scrollbar-track: #f1f5f9;
+        --color-scrollbar-thumb: #cbd5e1;
+        --color-scrollbar-thumb-hover: #94a3b8;
+        /* Safe area insets for notched phones */
+        --safe-top: env(safe-area-inset-top, 0px);
+        --safe-bottom: env(safe-area-inset-bottom, 0px);
+        --safe-left: env(safe-area-inset-left, 0px);
+        --safe-right: env(safe-area-inset-right, 0px);
+      }
+
+      .dark {
+        --color-background-start: #020617;
+        --color-background-end: #0f172a;
+        --color-text-primary: #f8fafc;
+        --color-text-secondary: #94a3b8;
+        --color-text-on-accent: #ffffff;
+        --color-surface-primary: #0f172a;
+        --color-surface-secondary: #1e293b;
+        --color-surface-tertiary: #334155;
+        --color-border: #1e293b;
+        --color-accent-text: #38bdf8;
+        --color-accent-bg: #0ea5e9;
+        --color-accent-bg-hover: #0284c7;
+        --color-accent-ring: #38bdf8;
+        --color-accent-shadow: rgba(14, 165, 233, 0.5);
+        --color-success-text: #86efac;
+        --color-success-bg: rgba(22, 163, 74, 0.15);
+        --color-success-border: #15803d;
+        --color-danger-text: #fca5a5;
+        --color-danger-bg: rgba(185, 28, 28, 0.15);
+        --color-danger-border: #991b1b;
+        --color-warning-text: #fde047;
+        --color-warning-bg: rgba(202, 138, 4, 0.15);
+        --color-warning-bg-hover: #eab308;
+        --color-scrollbar-track: #0f172a;
+        --color-scrollbar-thumb: #334155;
+        --color-scrollbar-thumb-hover: #475569;
+      }
+
+      /* ── Base & Reset ───────────────────────────────────────────── */
+      *, *::before, *::after { box-sizing: border-box; }
+
+      html, body, #root {
+        height: 100%;
+        /* Fill the full screen including safe areas on notched phones */
+        min-height: 100dvh; /* dvh = dynamic viewport height — correct on mobile */
+      }
+
+      body {
+        background-image: linear-gradient(to bottom right, var(--color-background-start), var(--color-background-end));
+        color: var(--color-text-primary);
+        transition: background-color 0.3s ease, color 0.3s ease;
+        /* Prevent overscroll bounce on iOS */
+        overscroll-behavior: none;
+        /* Padding for iPhone notch/Dynamic Island */
+        padding-top: var(--safe-top);
+        padding-bottom: var(--safe-bottom);
+        padding-left: var(--safe-left);
+        padding-right: var(--safe-right);
+      }
+
+      /* ── Scrollbar ──────────────────────────────────────────────── */
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: var(--color-scrollbar-track); }
+      ::-webkit-scrollbar-thumb { background: var(--color-scrollbar-thumb); border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: var(--color-scrollbar-thumb-hover); }
+
+      /* ── Touch improvements ─────────────────────────────────────── */
+      button, a, [role="button"] {
+        /* Minimum 44×44px tap target on mobile (Apple HIG) */
+        min-height: 36px;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      /* Prevent text selection flicker on buttons */
+      button { user-select: none; }
+
+      /* ── Input improvements for mobile ──────────────────────────── */
+      textarea, input[type="text"], input[type="password"], input[type="email"] {
+        /* Prevent iOS auto-zoom on focus (needs font-size >= 16px) */
+        font-size: 16px;
+      }
+
+      /* ── Animations ─────────────────────────────────────────────── */
+      @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+      .fade-in { animation: fade-in 0.5s ease-out forwards; }
+      @keyframes slide-in-bottom { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+      .slide-in-bottom { animation: slide-in-bottom 0.4s ease-out forwards; }
+      @keyframes pulse-dot { 0%, 100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.1); opacity: 1; } }
+      .pulse-1 { animation: pulse-dot 1.2s infinite ease-in-out; animation-delay: 0s; }
+      .pulse-2 { animation: pulse-dot 1.2s infinite ease-in-out; animation-delay: 0.2s; }
+      .pulse-3 { animation: pulse-dot 1.2s infinite ease-in-out; animation-delay: 0.4s; }
+      @keyframes flash-highlight {
+        0% { background-color: transparent; }
+        50% { background-color: var(--color-success-bg); }
+        100% { background-color: transparent; }
+      }
+      .flash-highlight { animation: flash-highlight 0.7s ease-out; }
+
+      /* ── Table & Math Styling ───────────────────────────────────── */
+      .prose .table-wrapper {
+        overflow-x: auto;
+        margin-top: 1.5em;
+        margin-bottom: 1.5em;
+        border: 1px solid var(--color-border);
+        border-radius: 0.75rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+      }
+      .dark .prose .table-wrapper { box-shadow: none; }
+      .prose table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.9em; margin: 0; }
+      .prose th, .prose td { padding: 0.75rem 1rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--color-border); }
+      .prose thead th {
+        background-color: var(--color-surface-secondary);
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--color-text-secondary);
+        border-bottom-width: 2px;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+      }
+      .dark .prose thead th { background-color: #283447; }
+      .prose thead th:first-child { border-top-left-radius: 0.65rem; }
+      .prose thead th:last-child { border-top-right-radius: 0.65rem; }
+      .prose tbody tr:last-child td { border-bottom: none; }
+      .prose tbody tr:last-child td:first-child { border-bottom-left-radius: 0.65rem; }
+      .prose tbody tr:last-child td:last-child { border-bottom-right-radius: 0.65rem; }
+      .prose tbody tr { transition: background-color 0.15s ease-in-out; }
+      .prose tbody tr:hover { background-color: var(--color-surface-secondary); }
+      .dark .prose tbody tr:hover { background-color: rgba(255, 255, 255, 0.035); }
+
+      /* KaTeX font-size adjustment */
+      .katex { font-size: 1.1em !important; }
+
+      /* ── Mobile sidebar overlay ─────────────────────────────────── */
+      @media (max-width: 768px) {
+        /* Ensure fixed sidebars/navs sit above content */
+        .mobile-sidebar { z-index: 50; }
+      }
+    </style>
+    <script>
+      // IIFE to set theme before React mounts — prevents Flash Of Unstyled Content
+      (function() {
+        const theme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (theme === 'dark' || (!theme && prefersDark)) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      })();
+    </script>
+  </head>
+  <body class="transition-colors duration-300">
+    <div id="root"></div>
+    <script type="module" src="/src/index.tsx"></script>
+  </body>
+</html>
