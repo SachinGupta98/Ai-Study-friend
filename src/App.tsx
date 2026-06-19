@@ -6,6 +6,7 @@ import TutorChat from './components/TutorChat';
 import GeneralChat from './components/GeneralChat';
 import Dashboard from './components/Dashboard';
 import Auth from './components/Auth';
+import PomodoroWidget from './components/PomodoroWidget';
 import { BookOpenIcon } from './components/icons/BookOpenIcon';
 import { ChatBubbleIcon } from './components/icons/ChatBubbleIcon';
 import { GeneralChatIcon } from './components/icons/GeneralChatIcon';
@@ -147,6 +148,8 @@ const App: React.FC = () => {
           },
         }}
       />
+      {/* 🍅 Pomodoro floating widget — always visible regardless of active view */}
+      <PomodoroWidget />
     </div>
   );
 };

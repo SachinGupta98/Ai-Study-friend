@@ -370,3 +370,36 @@ Respond ONLY with the raw JSON array. Do not include markdown formatting or expl
         throw handleGroqError(error, 'reschedulePlan');
     }
 };
+
+export const generateFlashcards = async (
+    text: string,
+    count: number = 6
+): Promise<{ question: string; answer: string }[]> => {
+    const prompt = `You are a study assistant. From the following explanation, generate exactly ${count} flashcard question-and-answer pairs that test key concepts. Each answer should be concise (1-3 sentences). Use KaTeX ($...$) for any math.
+
+Return STRICT JSON conforming exactly to this structure:
+{
+  "flashcards": [
+    { "question": "...", "answer": "..." }
+  ]
+}
+
+Explanation to convert:
+"""
+${text.slice(0, 3000)}
+"""`;
+
+    try {
+        const response = await makeGroqRequest({
+            model: 'llama-3.3-70b-versatile',
+            messages: [{ role: 'user', content: prompt }],
+            response_format: { type: 'json_object' },
+            temperature: 0.6,
+        });
+        const data = await response.json();
+        const parsed = JSON.parse(data.choices[0].message.content);
+        return parsed.flashcards || [];
+    } catch (error) {
+        throw handleGroqError(error, 'generateFlashcards');
+    }
+};

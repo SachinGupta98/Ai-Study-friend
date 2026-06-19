@@ -59,6 +59,29 @@ export interface TutorChatSession {
   subject: string;
   lastUpdatedAt: string;
   messages: ChatMessage[];
+  flashcardDecks?: FlashcardDeck[];
+}
+
+// ── Flashcard / Spaced Repetition (SM-2 algorithm) ────────────────────────────
+
+export interface Flashcard {
+  id: string;
+  question: string;
+  answer: string;
+  // SM-2 fields
+  interval: number;       // days until next review
+  easeFactor: number;     // SM-2 EF, starts at 2.5
+  repetitions: number;    // how many times reviewed successfully
+  nextReviewDate: string; // ISO date string
+  createdAt: string;
+}
+
+export interface FlashcardDeck {
+  id: string;
+  title: string;          // auto-named from message context
+  messageIndex: number;   // which AI message this deck was created from
+  cards: Flashcard[];
+  createdAt: string;
 }
 
 export interface QuizRecord {

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import jsPDF from 'jspdf';
-import { getTutorResponseStream, formatCode, generateQuiz } from '../services/geminiService';
+import { getTutorResponseStream, formatCode, generateQuiz, generateFlashcards } from '../services/geminiService';
 import { getTutorChatHistory, saveTutorChatSession, saveQuizResult } from '../services/authService';
-import { Curriculum, ChatMessage, Quiz, QuizRecord } from '../types';
+import { Curriculum, ChatMessage, Quiz, QuizRecord, FlashcardDeck, Flashcard } from '../types';
 import TopicSelector from './TopicSelector';
+import FlashcardPanel from './FlashcardPanel';
 import Spinner from './Spinner';
 import { ACADEMIC_DATA } from '../constants';
 import { PaperclipIcon } from './icons/PaperclipIcon';
@@ -50,9 +51,17 @@ const TutorChat: React.FC = () => {
     const [quizCompleted, setQuizCompleted] = useState(false);
     // ------------------
 
+    // --- Flashcard State ---
+    const [flashcardDecks, setFlashcardDecks] = useState<FlashcardDeck[]>([]);
+    const [generatingDeckForIndex, setGeneratingDeckForIndex] = useState<number | null>(null);
+    const [activeDeckIndex, setActiveDeckIndex] = useState<number | null>(null); // which message's deck is shown
+    const [flashcardError, setFlashcardError] = useState<string | null>(null);
+    // -----------------------
+
     const chatEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const chatContainerRef = useRef<HTMLDivElement>(null);
+    const flashcardDecksRef = useRef<FlashcardDeck[]>([]); // kept in sync for unload saves
 
     const { isRecording, toggleRecording: handleToggleRecording } = useSpeechToText((transcript: string) => {
         setInput((prev: string) => prev + transcript + " ");
@@ -67,7 +76,8 @@ const TutorChat: React.FC = () => {
     useEffect(() => {
         messagesRef.current = messages;
         sessionDetailsRef.current = { id: currentSessionId, curriculum, subject };
-    }, [messages, currentSessionId, curriculum, subject]);
+        flashcardDecksRef.current = flashcardDecks;
+    }, [messages, currentSessionId, curriculum, subject, flashcardDecks]);
 
     // Save chat when component unmounts (navigating away within app)
     useEffect(() => {
@@ -80,6 +90,7 @@ const TutorChat: React.FC = () => {
                     subject: sessionDetailsRef.current.subject,
                     lastUpdatedAt: new Date().toISOString(),
                     messages: msgsToSave,
+                    flashcardDecks: flashcardDecksRef.current,
                 });
             }
         };
@@ -96,6 +107,7 @@ const TutorChat: React.FC = () => {
                     subject: sessionDetailsRef.current.subject,
                     lastUpdatedAt: new Date().toISOString(),
                     messages: msgsToSave,
+                    flashcardDecks: flashcardDecksRef.current,
                 });
             }
         };
@@ -139,6 +151,10 @@ const TutorChat: React.FC = () => {
         if (latestSession && latestSession.messages.length > 0) {
             setMessages(latestSession.messages);
             setCurrentSessionId(latestSession.id);
+            // Restore flashcard decks from the saved session
+            if (latestSession.flashcardDecks) {
+                setFlashcardDecks(latestSession.flashcardDecks);
+            }
         } else {
             let initialMessage = `Hi! I'm Vidya AI, your personal tutor for ${subject}. How can I help you today? You can ask me questions or upload an image of a problem.`;
             if (curriculum === 'Programming Help') {
@@ -159,17 +175,19 @@ const TutorChat: React.FC = () => {
                 subject: sessionDetailsRef.current.subject,
                 lastUpdatedAt: new Date().toISOString(),
                 messages: messagesRef.current,
+                flashcardDecks: flashcardDecksRef.current,
             }).catch(console.error);
         }
         setIsSessionStarted(false);
         setMessages([]);
         setSubject('');
         setCurrentSessionId(null);
+        setFlashcardDecks([]);
+        setActiveDeckIndex(null);
         resetQuizState();
     }, [isSessionStarted]);
 
     const handleNewChat = useCallback(() => {
-        // A new chat is being started. Generate a new session ID for it.
         const newSessionId = `session-${Date.now()}`;
         setCurrentSessionId(newSessionId);
 
@@ -179,10 +197,11 @@ const TutorChat: React.FC = () => {
             initialMessage = `Hi! I'm Vidya AI, your expert coding mentor for ${subject}. Ask me to explain a concept, debug your code, or show you best practices!`;
         }
         setMessages([{ role: 'model', text: initialMessage, image: undefined }]);
-
         setInput('');
         setSelectedImage(null);
         setPreviewUrl(null);
+        setFlashcardDecks([]);
+        setActiveDeckIndex(null);
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
@@ -261,6 +280,54 @@ const TutorChat: React.FC = () => {
             setIsTyping(false);
         }
     }, [input, selectedImage, isTyping, isFormatting, isRecording, messages]);
+
+    // ── Flashcard generation ──────────────────────────────────────────────────
+    const handleGenerateFlashcards = useCallback(async (messageIndex: number, messageText: string) => {
+        if (generatingDeckForIndex !== null) return;
+        // If deck already exists for this message, just toggle it open
+        const existing = flashcardDecks.find(d => d.messageIndex === messageIndex);
+        if (existing) {
+            setActiveDeckIndex(activeDeckIndex === messageIndex ? null : messageIndex);
+            return;
+        }
+
+        setGeneratingDeckForIndex(messageIndex);
+        setFlashcardError(null);
+        try {
+            const pairs = await generateFlashcards(messageText, 6);
+            if (!pairs.length) {
+                setFlashcardError('Could not generate flashcards for this response.');
+                return;
+            }
+            const today = new Date().toISOString();
+            const newDeck: FlashcardDeck = {
+                id: `deck-${Date.now()}`,
+                title: `Cards from ${sessionDetailsRef.current.subject}`,
+                messageIndex,
+                createdAt: today,
+                cards: pairs.map((p, i): Flashcard => ({
+                    id: `card-${Date.now()}-${i}`,
+                    question: p.question,
+                    answer: p.answer,
+                    interval: 1,
+                    easeFactor: 2.5,
+                    repetitions: 0,
+                    nextReviewDate: today,
+                    createdAt: today,
+                })),
+            };
+            setFlashcardDecks(prev => [...prev, newDeck]);
+            setActiveDeckIndex(messageIndex);
+        } catch (err: any) {
+            setFlashcardError(err.message || 'Failed to generate flashcards.');
+        } finally {
+            setGeneratingDeckForIndex(null);
+        }
+    }, [flashcardDecks, activeDeckIndex, generatingDeckForIndex]);
+
+    const handleUpdateDeck = useCallback((updatedDeck: FlashcardDeck) => {
+        setFlashcardDecks(prev => prev.map(d => d.id === updatedDeck.id ? updatedDeck : d));
+    }, []);
 
     const handleRetrySendMessage = useCallback(async () => {
         if (!lastUserMessageRef.current) return;
@@ -657,11 +724,55 @@ const TutorChat: React.FC = () => {
     const renderChat = () => (
         <>
             <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.map((msg, index) => (
-                    msg.role === 'user'
-                        ? <UserMessage key={index} text={msg.text} image={msg.image} />
-                        : <ModelMessage key={index} message={msg} />
-                ))}
+                {messages.map((msg, index) => {
+                    const deckForThisMsg = flashcardDecks.find(d => d.messageIndex === index);
+                    const isActiveDeck = activeDeckIndex === index;
+                    const isGeneratingForThis = generatingDeckForIndex === index;
+                    const hasEnoughText = msg.role === 'model' && msg.text && msg.text.split(' ').length > 20;
+                    return (
+                        <div key={index}>
+                            {msg.role === 'user'
+                                ? <UserMessage text={msg.text} image={msg.image} />
+                                : (
+                                    <div>
+                                        <ModelMessage message={msg} />
+                                        {/* Flashcard button below each AI response */}
+                                        {hasEnoughText && (
+                                            <div className="ml-1 mt-1.5 flex items-center gap-2">
+                                                <button
+                                                    onClick={() => handleGenerateFlashcards(index, msg.text)}
+                                                    disabled={isGeneratingForThis}
+                                                    className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-all ${
+                                                        deckForThisMsg
+                                                            ? 'border-[var(--color-accent-text)]/40 text-[var(--color-accent-text)] bg-[var(--color-accent-bg)]/10 hover:bg-[var(--color-accent-bg)]/20'
+                                                            : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-accent-text)] hover:border-[var(--color-accent-text)]/40'
+                                                    }`}
+                                                    title={deckForThisMsg ? 'Toggle flashcards' : 'Generate flashcards from this response'}
+                                                >
+                                                    {isGeneratingForThis ? <Spinner /> : '🃏'}
+                                                    {isGeneratingForThis ? 'Generating...' : deckForThisMsg ? (isActiveDeck ? 'Hide Flashcards' : `${deckForThisMsg.cards.length} Cards`) : 'Make Flashcards'}
+                                                </button>
+                                                {flashcardError && generatingDeckForIndex === null && index === messages.length - 1 && (
+                                                    <span className="text-[11px] text-red-400">{flashcardError}</span>
+                                                )}
+                                            </div>
+                                        )}
+                                        {/* Show flashcard panel inline */}
+                                        {deckForThisMsg && isActiveDeck && (
+                                            <div className="mt-2 ml-1 max-w-lg">
+                                                <FlashcardPanel
+                                                    deck={deckForThisMsg}
+                                                    onUpdateDeck={handleUpdateDeck}
+                                                    onClose={() => setActiveDeckIndex(null)}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            }
+                        </div>
+                    );
+                })}
                 {isTyping && <TypingIndicator />}
                 {chatError && (
                     <div className="px-4 py-2">
