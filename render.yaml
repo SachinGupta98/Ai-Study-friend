@@ -47,8 +47,11 @@ services:
       - key: VITE_API_URL
         value: "/api"
 
-      # ⚠️  Supabase Auth (Frontend — public/safe values from Supabase → Settings → API)
+      # ⚠️  Supabase Auth (Frontend & Backend)
       - key: VITE_SUPABASE_URL
+        value: "https://ozkcrhkfetaiwcxnlkvz.supabase.co"
+
+      - key: SUPABASE_URL
         value: "https://ozkcrhkfetaiwcxnlkvz.supabase.co"
 
       - key: VITE_SUPABASE_ANON_KEY
