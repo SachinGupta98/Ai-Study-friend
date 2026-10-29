@@ -46,3 +46,15 @@ services:
 
       - key: VITE_API_URL
         value: "/api"
+
+      # ⚠️  Supabase Auth (Frontend — public/safe values from Supabase → Settings → API)
+      - key: VITE_SUPABASE_URL
+        value: "https://ozkcrhkfetaiwcxnlkvz.supabase.co"
+
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+
+      # ⚠️  Supabase JWT Secret (Backend — used to verify Supabase tokens in FastAPI)
+      # Get from: Supabase → Project Settings → API → JWT Settings → JWT Secret
+      - key: SUPABASE_JWT_SECRET
+        sync: false
