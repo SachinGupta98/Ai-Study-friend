@@ -41,6 +41,9 @@ services:
       - key: VITE_GROQ_API_KEY
         sync: false
 
+      - key: VITE_GROQ_MODEL
+        value: "openai/gpt-oss-120b"
+
       - key: VITE_GEMINI_API_KEY
         sync: false
 

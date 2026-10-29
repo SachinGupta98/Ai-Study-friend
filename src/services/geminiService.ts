@@ -1,8 +1,9 @@
-// Note: Swapped to Groq API behind the scenes for reliability and zero rate limits.
+// Note: Powered by Groq API with robust model fallback support
 import { Curriculum, Task, ChatMessage, WeeklyPlan, Quiz, StudyPlan } from '../types';
 
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+const DEFAULT_MODEL = import.meta.env.VITE_GROQ_MODEL || "openai/gpt-oss-120b";
 
 const handleGroqError = (error: any, context: string): Error => {
     console.error(`Error during '${context}':`, error);
@@ -19,21 +20,65 @@ const handleGroqError = (error: any, context: string): Error => {
     return new Error(`An unexpected error occurred (${context}). Please try again.`);
 };
 
-
 const makeGroqRequest = async (payload: any) => {
-    const response = await fetch(GROQ_API_URL, {
-        method: "POST",
-        headers: {
-            "Authorization": `Bearer ${GROQ_API_KEY}`,
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-    });
-    if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`Groq API error ${response.status}: ${errText}`);
+    const candidateModels = [
+        payload.model || DEFAULT_MODEL,
+        DEFAULT_MODEL,
+        "openai/gpt-oss-120b",
+        "qwen/qwen3.8-27b",
+        "openai/gpt-oss-20b"
+    ].filter((m, idx, arr) => Boolean(m) && arr.indexOf(m) === idx);
+
+    let lastError: any = null;
+
+    for (let i = 0; i < candidateModels.length; i++) {
+        const model = candidateModels[i];
+        try {
+            const currentPayload = { ...payload, model };
+            const response = await fetch(GROQ_API_URL, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${GROQ_API_KEY}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(currentPayload)
+            });
+
+            if (response.ok) {
+                return response;
+            }
+
+            const errText = await response.text();
+            const isModelUnavailable =
+                response.status === 404 ||
+                response.status === 400 ||
+                errText.includes("does not exist") ||
+                errText.includes("access to it") ||
+                errText.includes("decommissioned") ||
+                errText.includes("model_not_found");
+
+            if (isModelUnavailable && i < candidateModels.length - 1) {
+                console.warn(`[Groq] Model '${model}' unavailable: ${errText}. Falling back to '${candidateModels[i + 1]}'`);
+                continue;
+            }
+
+            throw new Error(`Groq API error ${response.status}: ${errText}`);
+        } catch (err: any) {
+            lastError = err;
+            const errMsg = String(err?.message || "");
+            if (
+                (errMsg.includes("does not exist") ||
+                 errMsg.includes("access to it") ||
+                 errMsg.includes("decommissioned")) &&
+                i < candidateModels.length - 1
+            ) {
+                continue;
+            }
+            throw err;
+        }
     }
-    return response;
+
+    throw lastError || new Error("Failed to get response from Groq AI service.");
 };
 
 export const generateStudyPlan = async (curriculum: Curriculum, subject: string, goal: string, duration: string): Promise<any> => {
@@ -61,7 +106,7 @@ export const generateStudyPlan = async (curriculum: Curriculum, subject: string,
 
     try {
         const response = await makeGroqRequest({
-            model: "llama-3.3-70b-versatile",
+            model: DEFAULT_MODEL,
             messages: [{ role: "user", content: prompt }],
             response_format: { type: "json_object" },
             temperature: 0.7
@@ -73,30 +118,36 @@ export const generateStudyPlan = async (curriculum: Curriculum, subject: string,
         const transformedWeeklyPlans = parsedPlan.weekly_plans.map((week: any) => ({
             ...week,
             daily_tasks: week.daily_tasks.map((day: any) => ({
-                ...day,
-                tasks: day.tasks.map((taskText: string): Task => ({ text: taskText, completed: false }))
+                day: day.day,
+                tasks: day.tasks.map((taskText: string) => ({
+                    text: taskText,
+                    completed: false
+                }))
             }))
         }));
-        return { ...parsedPlan, weekly_plans: transformedWeeklyPlans };
+
+        return {
+            title: parsedPlan.plan_title,
+            duration: parsedPlan.duration_weeks,
+            weeklyPlans: transformedWeeklyPlans
+        };
     } catch (error) {
         throw handleGroqError(error, 'generateStudyPlan');
     }
 };
 
-const transformHistory = (history: ChatMessage[]) => {
-    return history.map(msg => ({
-        role: msg.role === 'model' ? 'assistant' : 'user',
-        content: msg.text || ""
-    })).filter(msg => msg.content);
-};
+const transformHistory = (history: ChatMessage[]) => history.map(msg => ({
+    role: msg.role === 'model' ? 'assistant' : 'user',
+    content: msg.text
+}));
 
-const getTutorSystemInstruction = (curriculum: Curriculum, subject: string): string => {
-    const mathInstruction = `IMPORTANT: For all mathematical formulas, equations, and symbols, use KaTeX-compatible LaTeX. Use single dollar signs ($...$) for inline math and double dollar signs ($$...$$) for block equations.`;
-    if (curriculum === 'Programming Help') {
-        return `You are "Vidya AI", an expert AI coding mentor. Helping with: ${subject}. Adopt the persona of an expert programmer. ${mathInstruction}`;
-    }
-    return `You are "Vidya AI", an expert AI tutor. Helping with ${curriculum} - ${subject}. Explain concepts clearly. ${mathInstruction}`;
-};
+const getTutorSystemInstruction = (curriculum: Curriculum, subject: string) => `
+You are 'Vidya AI', an expert, patient, and encouraging AI tutor.
+Curriculum: ${curriculum}
+Subject: ${subject}
+Help the student deeply understand concepts step-by-step. Use the Socratic method when helpful.
+Always format mathematical formulas using KaTeX ($...$ for inline, $$...$$ for block).
+`;
 
 export const getTutorResponseStream = async function* (
     curriculum: Curriculum,
@@ -106,7 +157,7 @@ export const getTutorResponseStream = async function* (
     image?: { base64: string, mimeType: string }
 ) {
     const systemInstruction = getTutorSystemInstruction(curriculum, subject);
-    let model = "llama-3.3-70b-versatile";
+    let model = DEFAULT_MODEL;
     const messages: any[] = [{ role: "system", content: systemInstruction }, ...transformHistory(history)];
 
     if (image) {
@@ -156,7 +207,7 @@ export const getGeneralChatResponseStream = async function* (
     const systemInstruction = `You are "Vidya AI" in a friendly, conversational mode. Support the student, act as a career counselor when needed. Use markdown.`;
     const historyForModel = history.length > 20 ? [history[0], ...history.slice(-20)] : history;
     const messages: any[] = [{ role: "system", content: systemInstruction }, ...transformHistory(historyForModel)];
-    let model = "llama-3.3-70b-versatile";
+    let model = DEFAULT_MODEL;
 
     if (image) {
         model = "meta-llama/llama-4-scout-17b-16e-instruct";
@@ -201,7 +252,7 @@ export const formatCode = async (code: string): Promise<string> => {
     const prompt = `You are a code formatting tool. Format this code according to standard conventions. Do not add explanations. Output in a markdown code block.\n${code}`;
     try {
         const response = await makeGroqRequest({
-            model: "llama-3.3-70b-versatile",
+            model: DEFAULT_MODEL,
             messages: [{ role: "user", content: prompt }],
             temperature: 0.1
         });
@@ -217,7 +268,7 @@ export const formatCode = async (code: string): Promise<string> => {
 
 export const solveDoubt = async (problem: string, image?: { base64: string, mimeType: string }): Promise<string> => {
     const prompt = `You are an expert AI Tutor. Analyze the problem. Provide a detailed, step-by-step solution. Format using KaTeX \`$...\$ \` and \`$$...$$\`.\n\nProblem: "${problem}"`;
-    let model = "llama-3.3-70b-versatile";
+    let model = DEFAULT_MODEL;
     const content: any[] = [{ type: "text", text: prompt }];
 
     if (image) {
@@ -241,7 +292,7 @@ export const simplifyExplanation = async (explanation: string): Promise<string> 
     const prompt = `You are an expert teacher. Simplify this explanation "like they are 10 years old". Use a simple analogy.\n\nOriginal:\n${explanation}`;
     try {
         const response = await makeGroqRequest({
-            model: "llama-3.3-70b-versatile",
+            model: DEFAULT_MODEL,
             messages: [{ role: "user", content: prompt }],
             temperature: 0.8
         });
@@ -256,7 +307,7 @@ export const generateMotivationalMessage = async (progress: number, subject: str
     const prompt = `You are an AI Study Coach. Student completed ${progress}% of their tasks in ${subject}. Write a 2 sentence motivational message based on this progress.`;
     try {
         const response = await makeGroqRequest({
-            model: "llama-3.3-70b-versatile",
+            model: DEFAULT_MODEL,
             messages: [{ role: "user", content: prompt }],
             temperature: 0.9
         });
@@ -275,7 +326,7 @@ export const adaptStudyPlan = async (weekPlan: WeeklyPlan, subject: string): Pro
 
     try {
         const response = await makeGroqRequest({
-            model: "llama-3.3-70b-versatile",
+            model: DEFAULT_MODEL,
             messages: [{ role: "user", content: prompt }],
             response_format: { type: "json_object" }
         });
@@ -300,7 +351,7 @@ export const generateQuiz = async (curriculum: Curriculum, subject: string): Pro
     }`;
     try {
         const response = await makeGroqRequest({
-            model: "llama-3.3-70b-versatile",
+            model: DEFAULT_MODEL,
             messages: [{ role: "user", content: prompt }],
             response_format: { type: "json_object" }
         });
@@ -315,7 +366,7 @@ export const getAICoachInsight = async (stats: any): Promise<string> => {
     const prompt = `You are an AI coach. Student stats: Streak ${stats.currentStreak}, Tasks ${stats.totalTasksCompleted}, Quizzes ${stats.quizzesTaken}, Score ${stats.averageQuizScore}%. Write a 2 sentence insight.`;
     try {
         const response = await makeGroqRequest({
-            model: "llama-3.3-70b-versatile",
+            model: DEFAULT_MODEL,
             messages: [{ role: "user", content: prompt }],
             temperature: 0.9
         });
@@ -355,7 +406,7 @@ Respond ONLY with the raw JSON array. Do not include markdown formatting or expl
 
     try {
         const response = await makeGroqRequest({
-            model: "llama-3.3-70b-versatile",
+            model: DEFAULT_MODEL,
             messages: [{ role: "user", content: prompt }],
             temperature: 0.1
         });
@@ -391,7 +442,7 @@ ${text.slice(0, 3000)}
 
     try {
         const response = await makeGroqRequest({
-            model: 'llama-3.3-70b-versatile',
+            model: DEFAULT_MODEL,
             messages: [{ role: 'user', content: prompt }],
             response_format: { type: 'json_object' },
             temperature: 0.6,
