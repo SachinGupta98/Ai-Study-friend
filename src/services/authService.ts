@@ -25,6 +25,7 @@ import {
     apiSaveCompanionChat,
     apiGetStats,
     apiSaveQuizResult,
+    apiSaveFocusSession,
 } from './apiService';
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -104,6 +105,10 @@ export const getCompanionChatHistory = async (): Promise<ChatMessage[]> => {
 
 export const saveQuizResult = async (result: QuizRecord): Promise<void> => {
     await apiSaveQuizResult(result);
+};
+
+export const saveFocusSession = async (durationMinutes: number = 25): Promise<void> => {
+    await apiSaveFocusSession(durationMinutes);
 };
 
 export const getUserStats = async () => {

@@ -137,6 +137,13 @@ const StudyPlanner: React.FC = () => {
             };
 
             setPlan(newPlan);
+            try {
+                await saveStudyPlan(newPlan);
+                setIsPlanSaved(true);
+                toast.success("Study plan generated & auto-saved to your dashboard!");
+            } catch (saveErr) {
+                console.error("Auto-save study plan failed:", saveErr);
+            }
 
         } catch (err: any) {
             setError(err.message || 'An unknown error occurred.');

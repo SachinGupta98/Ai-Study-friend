@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
 import { soundscape, SoundscapeType } from '../services/soundscapeService';
+import { saveFocusSession } from '../services/authService';
 
 export type PomodoroPhase = 'idle' | 'work' | 'short_break' | 'long_break';
 
@@ -71,6 +72,9 @@ export const PomodoroProvider: React.FC<{ children: ReactNode }> = ({ children }
         if (completedPhase === 'work') {
             const newCount = pomodoroCount + 1;
             setPomodoroCount(newCount);
+            // Record focus session to database to update streak, heatmap, and study time
+            saveFocusSession(25).catch(console.error);
+
             if (newCount % 4 === 0) {
                 setPhase('long_break');
                 setTimeLeft(PHASE_CONFIG.long_break.duration);

@@ -115,6 +115,8 @@ class UserStatsOut(BaseModel):
     averageQuizScore: int
     completionDates: list[str]
     plansCreated: int
+    studySessionsCount: int = 0
+    totalStudyMinutes: int = 0
 
 
 # ── Forgot Password ───────────────────────────────────────────────────────────

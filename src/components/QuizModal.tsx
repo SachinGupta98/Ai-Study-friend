@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Quiz } from '../types';
+import { Quiz, QuizRecord } from '../types';
+import { saveQuizResult } from '../services/authService';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -30,6 +31,16 @@ const QuizModal: React.FC<QuizModalProps> = ({ quiz, curriculum, subject, onClos
             setCurrentIndex(prev => prev + 1);
         } else {
             setIsFinished(true);
+            const calculatedScore = userAnswers.reduce((acc, ans, i) => {
+                return ans === quiz.questions[i].correct_answer ? acc + 1 : acc;
+            }, 0);
+            const record: QuizRecord = {
+                quizTitle: `Quiz: ${subject} (${curriculum})`,
+                score: calculatedScore,
+                totalQuestions: quiz.questions.length,
+                completedAt: new Date().toISOString(),
+            };
+            saveQuizResult(record).catch(console.error);
         }
     };
 

@@ -18,7 +18,10 @@ const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ completionDates }) =>
         for (let i = 0; i <= 364; i++) {
             const d = new Date(startDate);
             d.setDate(startDate.getDate() + i);
-            const dateStr = d.toISOString().split('T')[0];
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const dayNum = String(d.getDate()).padStart(2, '0');
+            const dateStr = `${year}-${month}-${dayNum}`;
 
             grid.push({
                 date: d,

@@ -279,6 +279,8 @@ interface UserStats {
     averageQuizScore: number;
     completionDates: string[];
     plansCreated: number;
+    studySessionsCount?: number;
+    totalStudyMinutes?: number;
 }
 
 type HistoryTab = 'plans' | 'tutor' | 'companion';
@@ -362,7 +364,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             stats.totalTasksCompleted * 15 +
             stats.quizzesTaken * 30 +
             stats.currentStreak * 50 +
-            stats.plansCreated * 40
+            stats.plansCreated * 40 +
+            (stats.studySessionsCount || 0) * 20
         );
     }, [stats]);
 
@@ -418,12 +421,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     }, [companionChat, searchQuery]);
 
     const achievements = stats ? [
+        { icon: <FireIcon className="w-8 h-8" />, title: "First Spark", description: "Start learning: complete a study session, task, or roadmap.", unlocked: (stats.currentStreak >= 1 || stats.totalTasksCompleted >= 1 || (stats.studySessionsCount || 0) >= 1 || stats.plansCreated >= 1) },
+        { icon: <FireIcon className="w-8 h-8" />, title: "3-Day Streak", description: "Maintain a study streak for 3 consecutive days.", unlocked: stats.currentStreak >= 3 },
         { icon: <FireIcon className="w-8 h-8" />, title: "7-Day Streak", description: "Maintain a study streak for 7 days.", unlocked: stats.currentStreak >= 7 },
-        { icon: <FireIcon className="w-8 h-8" />, title: "30-Day Streak", description: "Maintain a study streak for a full month.", unlocked: stats.currentStreak >= 30 },
-        { icon: <CheckBadgeIcon className="w-8 h-8" />, title: "Task Master", description: "Complete 50 tasks.", unlocked: stats.totalTasksCompleted >= 50 },
-        { icon: <CheckBadgeIcon className="w-8 h-8" />, title: "Task Legend", description: "Complete 200 tasks.", unlocked: stats.totalTasksCompleted >= 200 },
-        { icon: <TrophyIcon className="w-8 h-8" />, title: "Quiz Whiz", description: "Take 10 quizzes with an average score above 80%.", unlocked: stats.quizzesTaken >= 10 && stats.averageQuizScore > 80 },
-        { icon: <BookOpenIcon className="w-8 h-8" />, title: "Planner Pro", description: "Create 5 different study plans.", unlocked: stats.plansCreated >= 5 },
+        { icon: <BookOpenIcon className="w-8 h-8" />, title: "Active Scholar", description: "Engage in 3 interactive AI study sessions.", unlocked: (stats.studySessionsCount || 0) >= 3 },
+        { icon: <CheckBadgeIcon className="w-8 h-8" />, title: "Task Master", description: "Complete 10 roadmap tasks.", unlocked: stats.totalTasksCompleted >= 10 },
+        { icon: <TrophyIcon className="w-8 h-8" />, title: "Quiz Whiz", description: "Complete a quiz with at least 70% accuracy.", unlocked: stats.quizzesTaken >= 1 && stats.averageQuizScore >= 70 },
     ] : [];
 
     if (isLoading) {
@@ -506,8 +509,19 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             {/* 📊 Today's Focus Action Hub */}
             <TodaysFocus plans={plans} onToggleTask={handleToggleTaskForToday} />
 
-            {/* 💎 4 Glassmorphic Metrics Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* 💎 5 Glassmorphic Metrics Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+                <div className="p-4 rounded-2xl bg-[var(--color-surface-primary)]/75 backdrop-blur-xl border border-[var(--color-border)] shadow-lg relative overflow-hidden group hover:border-cyan-500/40 transition">
+                    <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">Study Sessions</span>
+                        <div className="w-8 h-8 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center text-sm">💬</div>
+                    </div>
+                    <div className="mt-2.5">
+                        <span className="text-2xl font-black text-[var(--color-text-primary)]">{stats.studySessionsCount || 0}</span>
+                        <span className="text-xs text-[var(--color-text-secondary)] ml-1 font-semibold">active</span>
+                    </div>
+                    <p className="text-[10px] text-cyan-400 font-semibold mt-1">~{stats.totalStudyMinutes || 0} mins logged</p>
+                </div>
                 <div className="p-5 rounded-2xl bg-[var(--color-surface-primary)]/75 backdrop-blur-xl border border-[var(--color-border)] shadow-lg relative overflow-hidden group hover:border-amber-500/40 transition">
                     <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">Current Streak</span>

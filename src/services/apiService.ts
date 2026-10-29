@@ -199,3 +199,17 @@ export const apiSaveQuizResult = async (result: any): Promise<void> => {
     body: JSON.stringify({ result }),
   });
 };
+
+export const apiSaveFocusSession = async (durationMinutes: number = 25): Promise<void> => {
+  try {
+    await apiFetch('/stats/focus', {
+      method: 'POST',
+      body: JSON.stringify({
+        completedAt: new Date().toISOString(),
+        durationMinutes,
+      }),
+    });
+  } catch (err) {
+    console.error("Failed to save focus session:", err);
+  }
+};

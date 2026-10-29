@@ -65,6 +65,33 @@ const TodaysFocus: React.FC<TodaysFocusProps> = ({ plans, onToggleTask }) => {
             });
         });
 
+        // If no tasks matched today by exact date offset, show the upcoming uncompleted tasks from active plans
+        if (tasksForToday.length === 0 && plans.length > 0) {
+            for (const plan of plans) {
+                for (let w = 0; w < (plan.weekly_plans || []).length; w++) {
+                    const week = plan.weekly_plans[w];
+                    for (const dayPlan of (week.daily_tasks || [])) {
+                        for (let t = 0; t < dayPlan.tasks.length; t++) {
+                            const task = dayPlan.tasks[t];
+                            if (!task.completed && tasksForToday.length < 4) {
+                                tasksForToday.push({
+                                    planId: plan.id,
+                                    planTitle: plan.plan_title,
+                                    subject: plan.subject,
+                                    weekIndex: w,
+                                    day: dayPlan.day,
+                                    taskIndex: t,
+                                    task
+                                });
+                            }
+                        }
+                    }
+                    if (tasksForToday.length > 0) break;
+                }
+                if (tasksForToday.length > 0) break;
+            }
+        }
+
         return tasksForToday;
     }, [plans]);
 
