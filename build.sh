@@ -16,10 +16,14 @@ pip install -r backend/requirements.txt
 echo "=== Step 4: Initializing database tables on Supabase ==="
 cd backend
 python -c "
-from database import Base, engine
-import models  # registers all ORM models
-Base.metadata.create_all(bind=engine)
-print('  [OK] All database tables created/verified successfully.')
+try:
+    from database import Base, engine
+    import models
+    Base.metadata.create_all(bind=engine)
+    print('  [OK] All database tables created/verified successfully.')
+except Exception as e:
+    print('  [WARN] Database init during build:', e)
+    print('  (App will retry connecting upon startup)')
 "
 cd ..
 

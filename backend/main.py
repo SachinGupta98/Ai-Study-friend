@@ -15,7 +15,10 @@ from routers import auth, plans, sessions, chats, stats
 load_dotenv()
 
 # Create all database tables (runs on startup if they don't exist)
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print(f"[WARN] Could not verify database tables on startup: {e}")
 
 app = FastAPI(
     title="Vidya AI — Study Assistant Backend",
