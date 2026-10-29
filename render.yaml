@@ -1,9 +1,48 @@
+# ── Vidya AI — Render Deployment (Supabase DB) ────────────────────────────────
+# Database is hosted on Supabase — no Render DB needed.
+# Set DATABASE_URL manually in the Render dashboard (see instructions below).
+
 services:
   - type: web
     name: vidya-ai
     runtime: python
-    buildCommand: "pip install -r backend/requirements.txt && npm install && npm run build"
+    plan: free
+    buildCommand: "bash build.sh"
     startCommand: "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT"
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.9
+        value: "3.11.9"
+
+      - key: NODE_VERSION
+        value: "20"
+
+      # ⚠️  Set this in the Render dashboard → Environment → DATABASE_URL
+      # Copy from: Supabase → Project → Settings → Database → Connection String
+      # Use the "URI" format and APPEND ?sslmode=require at the end:
+      # postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres?sslmode=require
+      - key: DATABASE_URL
+        sync: false
+
+      # ⚠️  Set this in the Render dashboard too (your JWT secret key)
+      - key: SECRET_KEY
+        sync: false
+
+      - key: ALGORITHM
+        value: HS256
+
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "10080"
+
+      # Change to your Render app URL after first deploy (e.g. https://vidya-ai.onrender.com)
+      - key: FRONTEND_ORIGIN
+        value: "*"
+
+      # ⚠️  Set these in the Render dashboard (baked into the Vite frontend bundle at build time)
+      - key: VITE_GROQ_API_KEY
+        sync: false
+
+      - key: VITE_GEMINI_API_KEY
+        sync: false
+
+      - key: VITE_API_URL
+        value: "/api"
