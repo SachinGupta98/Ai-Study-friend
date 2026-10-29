@@ -58,8 +58,9 @@ app.include_router(stats.router)
 
 
 @app.get("/health", tags=["health"])
+@app.get("/api/health", tags=["health"])
 def health_check():
-    """Basic health-check endpoint."""
+    """Basic health-check endpoint. Also available at /api/health for uptime monitors."""
     return {
         "status": "ok",
         "service": "Vidya AI Backend",
