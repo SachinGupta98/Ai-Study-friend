@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import jsPDF from 'jspdf';
+import { exportChatToPdf } from '../utils/pdfExportService';
 import { getTutorResponseStream, formatCode, generateQuiz, generateFlashcards } from '../services/geminiService';
 import { getTutorChatHistory, saveTutorChatSession, saveQuizResult } from '../services/authService';
 import { Curriculum, ChatMessage, Quiz, QuizRecord, FlashcardDeck, Flashcard } from '../types';
@@ -439,57 +439,11 @@ const TutorChat: React.FC = () => {
         setIsExporting(true);
 
         try {
-            const doc = new jsPDF();
-            const margin = 15;
-            const lineHeight = 7;
-            const pageHeight = doc.internal.pageSize.height;
-            const usableWidth = doc.internal.pageSize.width - (margin * 2);
-            let y = margin;
-
-            // Title
-            doc.setFontSize(18);
-            doc.text(`AI Tutor Chat: ${subject} (${curriculum})`, margin, y);
-            y += lineHeight * 2;
-
-            messages.forEach(msg => {
-                // Minimum space required for a message block (prefix + one line)
-                const minBlockHeight = lineHeight * 2;
-                if (y > pageHeight - margin - minBlockHeight) {
-                    doc.addPage();
-                    y = margin;
-                }
-
-                const prefix = msg.role === 'user' ? 'You:' : 'Vidya AI:';
-                doc.setFontSize(12);
-                doc.setFont('helvetica', 'bold');
-                doc.text(prefix, margin, y);
-                y += lineHeight;
-
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(11);
-
-                let content = msg.text || '';
-                if (msg.image) {
-                    content = '[Image Attached]\n' + content;
-                }
-
-                const textLines = doc.splitTextToSize(content, usableWidth);
-
-                textLines.forEach((line: string) => {
-                    if (y > pageHeight - margin) { // Check if current line fits
-                        doc.addPage();
-                        y = margin;
-                    }
-                    doc.text(line, margin, y);
-                    y += lineHeight;
-                });
-
-                y += lineHeight / 2; // Add a little space after each message
-            });
-
-            doc.save(`ai-tutor-${subject.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
+            exportChatToPdf(messages, subject, curriculum);
+            toast.success("Study notes PDF exported!");
         } catch (error) {
             console.error("Error exporting PDF:", error);
+            toast.error("Failed to export PDF.");
         } finally {
             setIsExporting(false);
         }

@@ -168,10 +168,17 @@
       /* Prevent text selection flicker on buttons */
       button { user-select: none; }
 
-      /* ── Input improvements for mobile ──────────────────────────── */
-      textarea, input[type="text"], input[type="password"], input[type="email"] {
+      /* ── Input improvements for mobile & dark mode visibility ───── */
+      textarea, input[type="text"], input[type="password"], input[type="email"], select {
         /* Prevent iOS auto-zoom on focus (needs font-size >= 16px) */
         font-size: 16px;
+      }
+      .dark textarea, .dark input[type="text"], .dark input[type="password"], .dark input[type="email"], .dark select {
+        background-color: #0f172a !important;
+        color: #f8fafc !important;
+      }
+      .dark input::placeholder, .dark textarea::placeholder {
+        color: #64748b !important;
       }
 
       /* ── Animations ─────────────────────────────────────────────── */

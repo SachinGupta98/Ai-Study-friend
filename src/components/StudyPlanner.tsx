@@ -295,7 +295,7 @@ const StudyPlanner: React.FC = () => {
                             value={goal}
                             onChange={(e) => setGoal(e.target.value)}
                             disabled={isLoading}
-                            className="w-full bg-[var(--color-surface-secondary)]/80 border border-[var(--color-border)] rounded-xl p-3 text-sm text-[var(--color-text-primary)] focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition"
+                            className="w-full bg-slate-900 border border-slate-700 text-white placeholder:text-slate-400 rounded-xl p-3 text-sm focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 focus:outline-none transition shadow-inner"
                             placeholder="e.g., Score 95%+ in Board Exam, Master Calculus"
                         />
                     </div>
@@ -310,7 +310,7 @@ const StudyPlanner: React.FC = () => {
                                         key={d}
                                         type="button"
                                         onClick={() => setDuration(d)}
-                                        className="text-[10px] px-2 py-0.5 rounded-md bg-[var(--color-surface-secondary)] hover:bg-[var(--color-surface-tertiary)] border border-[var(--color-border)] text-[var(--color-text-secondary)] transition"
+                                        className="text-[10px] px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition font-medium"
                                     >
                                         {d}
                                     </button>
@@ -323,7 +323,7 @@ const StudyPlanner: React.FC = () => {
                             value={duration}
                             onChange={(e) => setDuration(e.target.value)}
                             disabled={isLoading}
-                            className="w-full bg-[var(--color-surface-secondary)]/80 border border-[var(--color-border)] rounded-xl p-3 text-sm text-[var(--color-text-primary)] focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition"
+                            className="w-full bg-slate-900 border border-slate-700 text-white placeholder:text-slate-400 rounded-xl p-3 text-sm focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 focus:outline-none transition shadow-inner"
                             placeholder="e.g., 6 weeks"
                         />
                     </div>
