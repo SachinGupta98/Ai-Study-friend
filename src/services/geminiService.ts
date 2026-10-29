@@ -17,7 +17,27 @@ const handleGroqError = (error: any, context: string): Error => {
     // Surface the real Groq error message if available
     const groqDetail = error?.message?.match(/"message":"([^"]+)"/)?.[1];
     if (groqDetail) return new Error(groqDetail);
+    if (error?.message && !error.message.includes('[object Object]')) {
+        return new Error(error.message);
+    }
     return new Error(`An unexpected error occurred (${context}). Please try again.`);
+};
+
+const cleanAndParseJson = (rawContent: string): any => {
+    let text = (rawContent || "").trim();
+    // Strip markdown code fences if wrapped in ```json ... ``` or ``` ... ```
+    text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+
+    // Find bounding braces for object or array
+    const firstBrace = text.search(/[{\[]/);
+    if (firstBrace !== -1) {
+        const isObject = text[firstBrace] === '{';
+        const lastBrace = isObject ? text.lastIndexOf('}') : text.lastIndexOf(']');
+        if (lastBrace !== -1 && lastBrace > firstBrace) {
+            text = text.substring(firstBrace, lastBrace + 1);
+        }
+    }
+    return JSON.parse(text);
 };
 
 const makeGroqRequest = async (payload: any) => {
@@ -112,23 +132,64 @@ export const generateStudyPlan = async (curriculum: Curriculum, subject: string,
             temperature: 0.7
         });
         const data = await response.json();
-        const jsonText = data.choices[0].message.content;
-        const parsedPlan = JSON.parse(jsonText);
+        const jsonText = data.choices[0]?.message?.content || "{}";
+        const parsedPlan = cleanAndParseJson(jsonText);
 
-        const transformedWeeklyPlans = parsedPlan.weekly_plans.map((week: any) => ({
-            ...week,
-            daily_tasks: week.daily_tasks.map((day: any) => ({
-                day: day.day,
-                tasks: day.tasks.map((taskText: string) => ({
-                    text: taskText,
-                    completed: false
-                }))
-            }))
-        }));
+        const rawWeeks = Array.isArray(parsedPlan.weekly_plans)
+            ? parsedPlan.weekly_plans
+            : Array.isArray(parsedPlan.weeklyPlans)
+            ? parsedPlan.weeklyPlans
+            : Array.isArray(parsedPlan.weeks)
+            ? parsedPlan.weeks
+            : [];
+
+        const transformedWeeklyPlans = rawWeeks.map((week: any, wIdx: number) => {
+            const rawDaily = Array.isArray(week.daily_tasks)
+                ? week.daily_tasks
+                : Array.isArray(week.dailyTasks)
+                ? week.dailyTasks
+                : Array.isArray(week.days)
+                ? week.days
+                : [];
+
+            const daily_tasks = rawDaily.map((day: any) => {
+                const rawTasks = Array.isArray(day.tasks)
+                    ? day.tasks
+                    : Array.isArray(day.taskList)
+                    ? day.taskList
+                    : [];
+
+                const tasks = rawTasks.map((t: any) => {
+                    if (typeof t === 'string') return { text: t, completed: false };
+                    if (t && typeof t === 'object') {
+                        return { text: t.text || t.task || t.title || String(t), completed: Boolean(t.completed) };
+                    }
+                    return { text: String(t), completed: false };
+                });
+
+                return {
+                    day: day.day || day.day_name || day.name || 'Day',
+                    tasks
+                };
+            });
+
+            return {
+                week: Number(week.week || wIdx + 1),
+                topic_focus: week.topic_focus || week.topic || week.focus || `Week ${wIdx + 1}`,
+                daily_tasks
+            };
+        });
+
+        const plan_title = parsedPlan.plan_title || parsedPlan.title || `${subject} (${curriculum}) Study Plan`;
+        const duration_weeks = Number(parsedPlan.duration_weeks || parsedPlan.duration || 4);
 
         return {
-            title: parsedPlan.plan_title,
-            duration: parsedPlan.duration_weeks,
+            plan_title,
+            duration_weeks,
+            weekly_plans: transformedWeeklyPlans,
+            // Keep aliases for backwards compatibility
+            title: plan_title,
+            duration: duration_weeks,
             weeklyPlans: transformedWeeklyPlans
         };
     } catch (error) {
@@ -331,7 +392,8 @@ export const adaptStudyPlan = async (weekPlan: WeeklyPlan, subject: string): Pro
             response_format: { type: "json_object" }
         });
         const data = await response.json();
-        return JSON.parse(data.choices[0].message.content);
+        const jsonText = data.choices[0]?.message?.content || "{}";
+        return cleanAndParseJson(jsonText);
     } catch (error) {
         throw handleGroqError(error, 'adaptStudyPlan');
     }
@@ -356,7 +418,8 @@ export const generateQuiz = async (curriculum: Curriculum, subject: string): Pro
             response_format: { type: "json_object" }
         });
         const data = await response.json();
-        return JSON.parse(data.choices[0].message.content);
+        const jsonText = data.choices[0]?.message?.content || "{}";
+        return cleanAndParseJson(jsonText);
     } catch (error) {
         throw handleGroqError(error, 'generateQuiz');
     }
@@ -412,11 +475,8 @@ Respond ONLY with the raw JSON array. Do not include markdown formatting or expl
         });
 
         const data = await response.json();
-        const content = data.choices[0]?.message?.content || "";
-
-        // Output might contain markdown code blocks, clean it:
-        const cleanContent = content.replace(/```json\n?|\n?```/g, "").trim();
-        return JSON.parse(cleanContent);
+        const content = data.choices[0]?.message?.content || "[]";
+        return cleanAndParseJson(content);
     } catch (error) {
         throw handleGroqError(error, 'reschedulePlan');
     }
@@ -448,7 +508,8 @@ ${text.slice(0, 3000)}
             temperature: 0.6,
         });
         const data = await response.json();
-        const parsed = JSON.parse(data.choices[0].message.content);
+        const jsonText = data.choices[0]?.message?.content || "{}";
+        const parsed = cleanAndParseJson(jsonText);
         return parsed.flashcards || [];
     } catch (error) {
         throw handleGroqError(error, 'generateFlashcards');
