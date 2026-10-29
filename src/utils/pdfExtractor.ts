@@ -57,3 +57,4 @@ export const extractTextFromFile = async (file: File): Promise<ExtractedDoc> => 
         wordCount,
     };
 };
+

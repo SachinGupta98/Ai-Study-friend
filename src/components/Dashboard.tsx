@@ -18,7 +18,6 @@ import { TrophyIcon } from './icons/TrophyIcon';
 import { FireIcon } from './icons/FireIcon';
 import { CheckBadgeIcon } from './icons/CheckBadgeIcon';
 import Spinner from './Spinner';
-import StatsCard from './StatsCard';
 import toast from 'react-hot-toast';
 import AICoach from './AICoach';
 import AchievementBadge from './AchievementBadge';
@@ -27,6 +26,7 @@ import ActivityHeatmap from './ActivityHeatmap';
 import { SearchIcon } from './icons/SearchIcon';
 import { SortAscendingIcon } from './icons/SortAscendingIcon';
 import { SortDescendingIcon } from './icons/SortDescendingIcon';
+import { usePomodoro } from '../contexts/PomodoroContext';
 
 // --- Re-usable History Item Components ---
 
@@ -47,13 +47,21 @@ const calculatePlanProgress = (plan: StudyPlan): number => {
     return Math.round((completedTasks / totalTasks) * 100);
 };
 
-const EmptyState: React.FC<{ icon: React.ReactNode; title: string; subtitle: string; }> = ({ icon, title, subtitle }) => (
-    <div className="text-center py-16 px-4">
-        <div className="w-16 h-16 mx-auto text-[var(--color-text-secondary)] opacity-40">
+const EmptyState: React.FC<{ icon: React.ReactNode; title: string; subtitle: string; actionText?: string; onAction?: () => void }> = ({ icon, title, subtitle, actionText, onAction }) => (
+    <div className="text-center py-12 px-4 rounded-2xl bg-[var(--color-surface-secondary)]/40 border border-dashed border-[var(--color-border)]">
+        <div className="w-12 h-12 mx-auto text-[var(--color-text-secondary)] opacity-50 flex items-center justify-center">
             {icon}
         </div>
-        <h3 className="mt-4 text-lg font-semibold text-[var(--color-text-primary)]">{title}</h3>
-        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{subtitle}</p>
+        <h3 className="mt-3 text-base font-bold text-[var(--color-text-primary)]">{title}</h3>
+        <p className="mt-1 text-xs text-[var(--color-text-secondary)] max-w-sm mx-auto">{subtitle}</p>
+        {actionText && onAction && (
+            <button
+                onClick={onAction}
+                className="mt-4 px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md hover:from-cyan-400 hover:to-blue-500 transition"
+            >
+                {actionText}
+            </button>
+        )}
     </div>
 );
 
@@ -63,7 +71,7 @@ const PlanHistoryItem: React.FC<{ plan: StudyPlan; onPlanUpdate: (updatedPlan: S
     const progress = useMemo(() => calculatePlanProgress(plan), [plan]);
 
     const createdAt = new Date(plan.createdAt).toLocaleDateString('en-IN', {
-        day: 'numeric', month: 'long', year: 'numeric'
+        day: 'numeric', month: 'short', year: 'numeric'
     });
 
     const handleReschedule = async (e: React.MouseEvent) => {
@@ -75,9 +83,10 @@ const PlanHistoryItem: React.FC<{ plan: StudyPlan; onPlanUpdate: (updatedPlan: S
             const newWeeklyPlans = await reschedulePlan(plan);
             const updatedPlan = { ...plan, weekly_plans: newWeeklyPlans };
             onPlanUpdate(updatedPlan);
+            toast.success("Tasks rescheduled successfully!");
         } catch (error) {
             console.error("Reschedule failed:", error);
-            alert("Failed to reschedule plan. Please try again later.");
+            toast.error("Failed to reschedule plan. Please try again later.");
         } finally {
             setIsRescheduling(false);
         }
@@ -90,15 +99,8 @@ const PlanHistoryItem: React.FC<{ plan: StudyPlan; onPlanUpdate: (updatedPlan: S
         const dayTasks = week.daily_tasks.find(d => d.day === day);
         if (dayTasks && dayTasks.tasks[taskIndex]) {
             const task = dayTasks.tasks[taskIndex];
-
-            if (!task.completed) {
-                // If checking for the first time, record today's exact date for accurate streak tracking
-                task.completedAt = new Date().toISOString();
-            } else {
-                task.completedAt = undefined;
-            }
-
             task.completed = !task.completed;
+            task.completedAt = task.completed ? new Date().toISOString() : undefined;
             onPlanUpdate(updatedPlan);
         }
     }, [plan, onPlanUpdate]);
@@ -112,52 +114,68 @@ const PlanHistoryItem: React.FC<{ plan: StudyPlan; onPlanUpdate: (updatedPlan: S
         const destDayPlan = week.daily_tasks.find(d => d.day === destDay);
 
         if (sourceDayPlan && destDayPlan) {
-            // Remove from source
             const [movedTask] = sourceDayPlan.tasks.splice(sourceIndex, 1);
-            // Insert at destination
             destDayPlan.tasks.splice(destIndex, 0, movedTask);
-
             onPlanUpdate(updatedPlan);
         }
     }, [plan, onPlanUpdate]);
 
     return (
-        <div className="bg-[var(--color-surface-primary)] border border-[var(--color-border)] rounded-lg p-4 transition-transform duration-200 hover:-translate-y-1 hover:border-[var(--color-accent-text)]/50">
-            <button onClick={() => setIsExpanded(!isExpanded)} className="w-full text-left space-y-2 relative">
-                <div className="flex justify-between items-start pr-8">
+        <div className="bg-[var(--color-surface-primary)]/70 backdrop-blur-xl border border-[var(--color-border)] rounded-2xl p-5 transition-all duration-300 hover:border-cyan-500/40 hover:shadow-lg shadow-sm">
+            <button onClick={() => setIsExpanded(!isExpanded)} className="w-full text-left space-y-3 relative group">
+                <div className="flex justify-between items-start pr-12">
                     <div>
-                        <h3 className="text-lg font-bold text-[var(--color-text-primary)]">{plan.plan_title}</h3>
-                        <p className="text-sm text-[var(--color-text-secondary)]">
-                            {plan.curriculum} - {plan.subject} | Created on {createdAt}
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm">📌</span>
+                            <h3 className="text-base font-bold text-[var(--color-text-primary)] group-hover:text-cyan-400 transition">
+                                {plan.plan_title}
+                            </h3>
+                        </div>
+                        <p className="text-xs text-[var(--color-text-secondary)] mt-1">
+                            <span className="px-2 py-0.5 rounded-md bg-[var(--color-surface-secondary)] border border-[var(--color-border)] font-semibold text-cyan-400 mr-2">
+                                {plan.curriculum}
+                            </span>
+                            {plan.subject} • Created on {createdAt}
                         </p>
                     </div>
                 </div>
 
-                <div className="absolute top-0 right-0 p-1 flex items-center gap-2">
+                <div className="absolute top-0 right-0 flex items-center gap-2">
                     {progress < 100 && (
                         <button
                             onClick={handleReschedule}
                             disabled={isRescheduling}
                             title="AI Auto-Reschedule Missed Tasks"
-                            className="p-1.5 text-[var(--color-accent-text)] hover:bg-[var(--color-accent-bg)]/20 transition rounded-full z-10"
+                            className="p-2 text-cyan-400 hover:bg-cyan-500/10 border border-cyan-500/20 transition rounded-xl"
                         >
-                            {isRescheduling ? <Spinner className="w-5 h-5 !text-[var(--color-accent-text)]" /> : <SparklesIcon className="w-5 h-5" />}
+                            {isRescheduling ? <Spinner className="w-4 h-4 !text-cyan-400" /> : <SparklesIcon className="w-4 h-4" />}
                         </button>
                     )}
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`w-6 h-6 text-[var(--color-text-secondary)] transition-transform flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                    </svg>
+                    <div className={`w-8 h-8 rounded-xl bg-[var(--color-surface-secondary)] flex items-center justify-center text-[var(--color-text-secondary)] transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+                        ▼
+                    </div>
                 </div>
 
-                {/* Progress Bar */}
-                <div className="w-full bg-[var(--color-surface-secondary)] rounded-full h-2.5">
-                    <div className="bg-[var(--color-accent-bg)] h-2.5 rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
+                {/* Progress bar */}
+                <div className="space-y-1">
+                    <div className="w-full bg-[var(--color-surface-secondary)] rounded-full h-2 overflow-hidden">
+                        <div
+                            className="bg-gradient-to-r from-cyan-500 to-blue-600 h-2 rounded-full transition-all duration-500"
+                            style={{ width: `${progress}%` }}
+                        />
+                    </div>
+                    <div className="flex justify-between text-[11px] text-[var(--color-text-secondary)]">
+                        <span>Progress</span>
+                        <span className="font-bold text-cyan-400">{progress}% Complete</span>
+                    </div>
                 </div>
-                <p className="text-xs text-right text-[var(--color-text-secondary)]">{progress}% Complete</p>
             </button>
+
             {isExpanded && (
                 <div className="mt-4 pt-4 border-t border-[var(--color-border)] space-y-4">
-                    <p className="text-[var(--color-text-primary)]"><span className="font-semibold">Goal:</span> {plan.goal}</p>
+                    <p className="text-xs text-[var(--color-text-primary)]">
+                        <span className="font-bold text-[var(--color-text-secondary)]">Goal:</span> {plan.goal}
+                    </p>
                     {(plan.weekly_plans || []).map((week, index) => (
                         <WeeklyPlanCard
                             key={week.week}
@@ -182,29 +200,34 @@ const ChatHistoryItem: React.FC<{ session: TutorChatSession }> = ({ session }) =
 
     const lastMessage = session.messages.length > 0 ? session.messages[session.messages.length - 1] : null;
     const previewText = lastMessage?.text
-        ? `${lastMessage.role === 'user' ? 'You: ' : ''}${lastMessage.text.substring(0, 70)}${lastMessage.text.length > 70 ? '...' : ''}`
+        ? `${lastMessage.role === 'user' ? 'You: ' : ''}${lastMessage.text.substring(0, 80)}${lastMessage.text.length > 80 ? '...' : ''}`
         : 'Chat session started.';
 
     return (
-        <div className="bg-[var(--color-surface-primary)] border border-[var(--color-border)] rounded-lg p-4 transition-transform duration-200 hover:-translate-y-1 hover:border-[var(--color-accent-text)]/50">
+        <div className="bg-[var(--color-surface-primary)]/70 backdrop-blur-xl border border-[var(--color-border)] rounded-2xl p-5 transition-all duration-300 hover:border-cyan-500/40 hover:shadow-lg shadow-sm">
             <button onClick={() => setIsExpanded(!isExpanded)} className="w-full text-left">
                 <div className="flex justify-between items-start">
                     <div className="flex-1 pr-4">
-                        <h3 className="text-lg font-bold text-[var(--color-text-primary)]">{session.subject} ({session.curriculum})</h3>
-                        <p className="text-sm text-[var(--color-text-secondary)]">
-                            {session.messages.length} messages | Last updated {lastUpdated}
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm">💬</span>
+                            <h3 className="text-base font-bold text-[var(--color-text-primary)]">
+                                {session.subject} ({session.curriculum})
+                            </h3>
+                        </div>
+                        <p className="text-xs text-[var(--color-text-secondary)] mt-1">
+                            {session.messages.length} messages • Last active {lastUpdated}
                         </p>
-                        <p className="text-sm text-[var(--color-text-secondary)] mt-2 italic truncate">
+                        <p className="text-xs text-[var(--color-text-secondary)] mt-2 italic line-clamp-1 bg-[var(--color-surface-secondary)]/50 p-2 rounded-xl border border-[var(--color-border)]">
                             {previewText}
                         </p>
                     </div>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`flex-shrink-0 w-6 h-6 text-[var(--color-text-secondary)] transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                    </svg>
+                    <div className={`w-8 h-8 rounded-xl bg-[var(--color-surface-secondary)] flex items-center justify-center text-[var(--color-text-secondary)] transition-transform flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`}>
+                        ▼
+                    </div>
                 </div>
             </button>
             {isExpanded && (
-                <div className="mt-4 pt-4 border-t border-[var(--color-border)] h-96 overflow-y-auto p-2 space-y-4 bg-[var(--color-surface-secondary)]/50 rounded">
+                <div className="mt-4 pt-4 border-t border-[var(--color-border)] max-h-96 overflow-y-auto p-3 space-y-3 bg-[var(--color-surface-secondary)]/40 rounded-2xl">
                     {session.messages.map((msg, index) => (
                         msg.role === 'user' ? <UserMessage key={index} text={msg.text} image={msg.image} /> : <ModelMessage key={index} message={msg} />
                     ))}
@@ -219,22 +242,25 @@ const CompanionChatHistoryItem: React.FC<{ messages: ChatMessage[] }> = ({ messa
     if (messages.length <= 1) return null;
 
     return (
-        <div className="bg-[var(--color-surface-primary)] border border-[var(--color-border)] rounded-lg p-4 transition-transform duration-200 hover:-translate-y-1 hover:border-[var(--color-accent-text)]/50">
+        <div className="bg-[var(--color-surface-primary)]/70 backdrop-blur-xl border border-[var(--color-border)] rounded-2xl p-5 transition-all duration-300 hover:border-cyan-500/40 hover:shadow-lg shadow-sm">
             <button onClick={() => setIsExpanded(!isExpanded)} className="w-full text-left">
                 <div className="flex justify-between items-center">
                     <div>
-                        <h3 className="text-lg font-bold text-[var(--color-text-primary)]">AI Companion Chat</h3>
-                        <p className="text-sm text-[var(--color-text-secondary)]">
-                            {messages.length} messages in this conversation.
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm">🤖</span>
+                            <h3 className="text-base font-bold text-[var(--color-text-primary)]">AI Companion Chat</h3>
+                        </div>
+                        <p className="text-xs text-[var(--color-text-secondary)] mt-1">
+                            {messages.length} messages in this active conversation
                         </p>
                     </div>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`w-6 h-6 text-[var(--color-text-secondary)] transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                    </svg>
+                    <div className={`w-8 h-8 rounded-xl bg-[var(--color-surface-secondary)] flex items-center justify-center text-[var(--color-text-secondary)] transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+                        ▼
+                    </div>
                 </div>
             </button>
             {isExpanded && (
-                <div className="mt-4 pt-4 border-t border-[var(--color-border)] h-96 overflow-y-auto p-2 space-y-4 bg-[var(--color-surface-secondary)]/50 rounded">
+                <div className="mt-4 pt-4 border-t border-[var(--color-border)] max-h-96 overflow-y-auto p-3 space-y-3 bg-[var(--color-surface-secondary)]/40 rounded-2xl">
                     {messages.map((msg, index) => (
                         msg.role === 'user' ? <UserMessage key={index} text={msg.text} image={msg.image} /> : <ModelMessage key={index} message={msg} />
                     ))}
@@ -244,7 +270,7 @@ const CompanionChatHistoryItem: React.FC<{ messages: ChatMessage[] }> = ({ messa
     );
 };
 
-// --- New Dashboard Component ---
+// --- Main Dashboard ---
 
 interface UserStats {
     currentStreak: number;
@@ -260,7 +286,13 @@ type PlanSort = 'date' | 'progress';
 type ChatSort = 'date' | 'messages';
 type SortDirection = 'asc' | 'desc';
 
-const Dashboard: React.FC = () => {
+interface DashboardProps {
+    onNavigate?: (view: string) => void;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
+    const { togglePanel } = usePomodoro();
+
     const [stats, setStats] = useState<UserStats | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [statsErrorMsg, setStatsErrorMsg] = useState<string | null>(null);
@@ -317,27 +349,45 @@ const Dashboard: React.FC = () => {
         const task = updatedPlan.weekly_plans[weekIndex]?.daily_tasks.find(d => d.day === day)?.tasks[taskIndex];
 
         if (task) {
-            if (!task.completed) {
-                task.completedAt = new Date().toISOString();
-            } else {
-                task.completedAt = undefined;
-            }
             task.completed = !task.completed;
+            task.completedAt = task.completed ? new Date().toISOString() : undefined;
             await handlePlanUpdate(updatedPlan);
         }
     }, [plans, handlePlanUpdate]);
 
-    // Memoized filtering and sorting logic
+    // Gamification Level Calculation
+    const xp = useMemo(() => {
+        if (!stats) return 0;
+        return (
+            stats.totalTasksCompleted * 15 +
+            stats.quizzesTaken * 30 +
+            stats.currentStreak * 50 +
+            stats.plansCreated * 40
+        );
+    }, [stats]);
+
+    const level = useMemo(() => Math.floor(xp / 150) + 1, [xp]);
+    const xpInCurrentLevel = xp % 150;
+    const xpPercent = Math.min(100, Math.round((xpInCurrentLevel / 150) * 100));
+
+    const getRankTitle = (lvl: number) => {
+        if (lvl <= 2) return '🌱 Apprentice Scholar';
+        if (lvl <= 5) return '⚡ Focused Achiever';
+        if (lvl <= 10) return '🧠 Knowledge Master';
+        return '👑 Academic Grandmaster';
+    };
+
+    // Filtered lists
     const sortedAndFilteredPlans = useMemo(() => {
         const filtered = plans.filter(plan =>
-            plan.plan_title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            plan.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            plan.curriculum.toLowerCase().includes(searchQuery.toLowerCase())
+            (plan.plan_title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (plan.subject || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (plan.curriculum || '').toLowerCase().includes(searchQuery.toLowerCase())
         );
         filtered.sort((a, b) => {
             if (planSort === 'date') {
                 return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-            } else { // progress
+            } else {
                 return calculatePlanProgress(b) - calculatePlanProgress(a);
             }
         });
@@ -353,7 +403,7 @@ const Dashboard: React.FC = () => {
         filtered.sort((a, b) => {
             if (chatSort === 'date') {
                 return new Date(b.lastUpdatedAt).getTime() - new Date(a.lastUpdatedAt).getTime();
-            } else { // messages
+            } else {
                 return b.messages.length - a.messages.length;
             }
         });
@@ -376,22 +426,8 @@ const Dashboard: React.FC = () => {
         { icon: <BookOpenIcon className="w-8 h-8" />, title: "Planner Pro", description: "Create 5 different study plans.", unlocked: stats.plansCreated >= 5 },
     ] : [];
 
-    const tabButtonClasses = (tab: HistoryTab) => `
-        px-4 py-2 text-sm font-semibold rounded-t-lg border-b-2 transition-colors
-        ${activeTab === tab
-            ? 'text-[var(--color-accent-text)] border-[var(--color-accent-text)]'
-            : 'text-[var(--color-text-secondary)] border-transparent hover:bg-[var(--color-surface-secondary)] hover:border-[var(--color-text-secondary)]/50'}
-    `;
-
-    const sortButtonClasses = (isActive: boolean) => `
-        px-3 py-1.5 text-xs rounded-md border transition-colors
-        ${isActive
-            ? 'bg-[var(--color-accent-bg)]/10 border-[var(--color-accent-text)]/30 text-[var(--color-accent-text)]'
-            : 'bg-[var(--color-surface-secondary)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-text-primary)]'}
-    `;
-
     if (isLoading) {
-        return <div className="flex justify-center items-center h-full"><Spinner /></div>;
+        return <div className="flex justify-center items-center h-full py-20"><Spinner /></div>;
     }
 
     if (!stats) {
@@ -404,92 +440,226 @@ const Dashboard: React.FC = () => {
     }
 
     return (
-        <div className="p-4 md:p-6 space-y-8">
-            {/* NEW: Today's Focus Hero Section */}
-            <TodaysFocus plans={plans} onToggleTask={handleToggleTaskForToday} />
+        <div className="p-4 md:p-6 space-y-8 max-w-6xl mx-auto">
+            {/* 🌟 Hero Gamification Banner */}
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-cyan-500/30 p-6 md:p-8 shadow-2xl">
+                <div className="absolute -top-20 -right-20 w-64 h-64 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-purple-500/15 rounded-full blur-3xl pointer-events-none" />
 
-            {/* Gamification Stats Section */}
-            <div className="space-y-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <StatsCard label="Current Streak" value={`${stats.currentStreak} days`} />
-                    <StatsCard label="Tasks Completed" value={`${stats.totalTasksCompleted}`} />
-                    <StatsCard label="Quizzes Taken" value={`${stats.quizzesTaken}`} />
-                    <StatsCard label="Avg. Quiz Score" value={`${stats.averageQuizScore}%`} />
-                </div>
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                    <div className="xl:col-span-1 h-full">
-                        <AICoach stats={stats} />
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="space-y-2">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-bold">
+                            <span>LEVEL {level}</span>
+                            <span>•</span>
+                            <span>{getRankTitle(level)}</span>
+                        </div>
+                        <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
+                            Welcome to Your Command Center
+                        </h1>
+                        <p className="text-xs md:text-sm text-slate-300 max-w-xl">
+                            Track your academic momentum, review AI roadmaps, and maintain daily learning streaks.
+                        </p>
+
+                        {/* XP Progress Bar */}
+                        <div className="pt-2 max-w-md space-y-1.5">
+                            <div className="flex justify-between text-xs text-slate-300 font-semibold">
+                                <span>{xp} Total XP</span>
+                                <span className="text-cyan-400">{150 - xpInCurrentLevel} XP to Level {level + 1}</span>
+                            </div>
+                            <div className="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden border border-slate-700">
+                                <div
+                                    className="bg-gradient-to-r from-cyan-400 to-indigo-500 h-2.5 rounded-full transition-all duration-700 shadow-[0_0_12px_rgba(34,211,238,0.5)]"
+                                    style={{ width: `${xpPercent}%` }}
+                                />
+                            </div>
+                        </div>
                     </div>
-                    <div className="xl:col-span-2">
-                        <ActivityHeatmap completionDates={stats.completionDates} />
+
+                    {/* Quick Action Shortcuts */}
+                    <div className="flex flex-wrap sm:flex-nowrap md:flex-col gap-2.5 flex-shrink-0">
+                        <button
+                            onClick={togglePanel}
+                            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs shadow-lg shadow-cyan-500/25 transition active:scale-95 flex items-center justify-center gap-2"
+                        >
+                            <span>⏱️ Start Focus Session</span>
+                        </button>
+                        {onNavigate && (
+                            <>
+                                <button
+                                    onClick={() => onNavigate('planner')}
+                                    className="px-4 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-200 font-semibold text-xs transition active:scale-95 flex items-center justify-center gap-2"
+                                >
+                                    <span>📅 Create Study Plan</span>
+                                </button>
+                                <button
+                                    onClick={() => onNavigate('docchat')}
+                                    className="px-4 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-200 font-semibold text-xs transition active:scale-95 flex items-center justify-center gap-2"
+                                >
+                                    <span>📄 Chat with Document</span>
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
 
-            {/* Achievements Section */}
-            <div>
-                <h2 className="text-2xl font-bold text-[var(--color-text-primary)] mb-4 flex items-center gap-2"><TrophyIcon className="w-6 h-6 text-amber-500" /> Achievements</h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {/* 📊 Today's Focus Action Hub */}
+            <TodaysFocus plans={plans} onToggleTask={handleToggleTaskForToday} />
+
+            {/* 💎 4 Glassmorphic Metrics Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-5 rounded-2xl bg-[var(--color-surface-primary)]/75 backdrop-blur-xl border border-[var(--color-border)] shadow-lg relative overflow-hidden group hover:border-amber-500/40 transition">
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">Current Streak</span>
+                        <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-base">🔥</div>
+                    </div>
+                    <div className="mt-3">
+                        <span className="text-2xl md:text-3xl font-black text-[var(--color-text-primary)]">{stats.currentStreak}</span>
+                        <span className="text-xs text-[var(--color-text-secondary)] ml-1 font-semibold">days</span>
+                    </div>
+                    <p className="text-[10px] text-amber-400 font-semibold mt-1">Keep it up tomorrow!</p>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-[var(--color-surface-primary)]/75 backdrop-blur-xl border border-[var(--color-border)] shadow-lg relative overflow-hidden group hover:border-emerald-500/40 transition">
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">Tasks Mastered</span>
+                        <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-base">✓</div>
+                    </div>
+                    <div className="mt-3">
+                        <span className="text-2xl md:text-3xl font-black text-[var(--color-text-primary)]">{stats.totalTasksCompleted}</span>
+                        <span className="text-xs text-[var(--color-text-secondary)] ml-1 font-semibold">done</span>
+                    </div>
+                    <p className="text-[10px] text-emerald-400 font-semibold mt-1">+15 XP earned per task</p>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-[var(--color-surface-primary)]/75 backdrop-blur-xl border border-[var(--color-border)] shadow-lg relative overflow-hidden group hover:border-cyan-500/40 transition">
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">Quiz Accuracy</span>
+                        <div className="w-8 h-8 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center text-base">🎯</div>
+                    </div>
+                    <div className="mt-3">
+                        <span className="text-2xl md:text-3xl font-black text-[var(--color-text-primary)]">{stats.averageQuizScore}%</span>
+                    </div>
+                    <p className="text-[10px] text-cyan-400 font-semibold mt-1">{stats.quizzesTaken} quizzes completed</p>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-[var(--color-surface-primary)]/75 backdrop-blur-xl border border-[var(--color-border)] shadow-lg relative overflow-hidden group hover:border-purple-500/40 transition">
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">Study Roadmaps</span>
+                        <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center text-base">🗺️</div>
+                    </div>
+                    <div className="mt-3">
+                        <span className="text-2xl md:text-3xl font-black text-[var(--color-text-primary)]">{stats.plansCreated}</span>
+                        <span className="text-xs text-[var(--color-text-secondary)] ml-1 font-semibold">plans</span>
+                    </div>
+                    <p className="text-[10px] text-purple-400 font-semibold mt-1">Multi-week structured plans</p>
+                </div>
+            </div>
+
+            {/* AI Coach & Activity Matrix */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                <div className="xl:col-span-1 h-full">
+                    <AICoach stats={stats} />
+                </div>
+                <div className="xl:col-span-2">
+                    <ActivityHeatmap completionDates={stats.completionDates} />
+                </div>
+            </div>
+
+            {/* 🏆 Achievements Badges */}
+            <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                    <TrophyIcon className="w-6 h-6 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.4)]" />
+                    <h2 className="text-xl md:text-2xl font-bold text-[var(--color-text-primary)]">
+                        Milestone Badges
+                    </h2>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
                     {achievements.map((ach, i) => <AchievementBadge key={i} {...ach} />)}
                 </div>
             </div>
 
-            {/* History Section */}
-            <div className="bg-[var(--color-surface-primary)] border border-[var(--color-border)] rounded-lg p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-                    <h2 className="text-2xl font-bold text-[var(--color-text-primary)]">Your History</h2>
-                    <div className="relative w-full sm:w-64">
-                        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--color-text-secondary)]" />
+            {/* 📜 History Archive Tabs */}
+            <div className="bg-[var(--color-surface-primary)]/70 backdrop-blur-2xl border border-[var(--color-border)] rounded-3xl p-5 sm:p-7 shadow-xl space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <h2 className="text-xl font-bold text-[var(--color-text-primary)]">
+                        Academic History & Archive
+                    </h2>
+                    <div className="relative w-full sm:w-72">
+                        <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-secondary)]" />
                         <input
                             type="text"
-                            placeholder="Search history..."
+                            placeholder="Filter plans and chats..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-[var(--color-surface-secondary)] border border-[var(--color-border)] rounded-md py-2 pl-10 pr-4 text-[var(--color-text-primary)] focus:ring-2 focus:ring-[var(--color-accent-ring)] focus:border-[var(--color-accent-text)] transition"
+                            className="w-full bg-[var(--color-surface-secondary)] border border-[var(--color-border)] rounded-xl py-2 pl-10 pr-4 text-xs md:text-sm text-[var(--color-text-primary)] focus:ring-2 focus:ring-cyan-400 transition"
                         />
                     </div>
                 </div>
 
-                {/* Tab Navigation and Sort Controls */}
-                <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 border-b border-[var(--color-border)] mb-4">
-                    <div className="flex items-center flex-wrap -mb-px">
-                        <button onClick={() => setActiveTab('plans')} className={tabButtonClasses('plans')}>Study Plans</button>
-                        <button onClick={() => setActiveTab('tutor')} className={tabButtonClasses('tutor')}>AI Tutor Chats</button>
-                        <button onClick={() => setActiveTab('companion')} className={tabButtonClasses('companion')}>Companion Chat</button>
+                {/* Filter Tabs */}
+                <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 border-b border-[var(--color-border)] pb-2">
+                    <div className="flex items-center gap-2">
+                        {[
+                            { id: 'plans', label: `Study Plans (${plans.length})` },
+                            { id: 'tutor', label: `Tutor Sessions (${tutorChats.length})` },
+                            { id: 'companion', label: `Companion Chat` },
+                        ].map(t => (
+                            <button
+                                key={t.id}
+                                onClick={() => setActiveTab(t.id as HistoryTab)}
+                                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                                    activeTab === t.id
+                                        ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/10 text-cyan-400 border border-cyan-500/30 shadow-xs'
+                                        : 'text-[var(--color-text-secondary)] hover:text-white hover:bg-[var(--color-surface-secondary)]'
+                                }`}
+                            >
+                                {t.label}
+                            </button>
+                        ))}
                     </div>
+
                     <div className="flex items-center gap-2">
                         {activeTab === 'plans' && (
                             <>
-                                <span className="text-xs text-[var(--color-text-secondary)]">Sort by:</span>
-                                <button onClick={() => setPlanSort('date')} className={sortButtonClasses(planSort === 'date')}>Date</button>
-                                <button onClick={() => setPlanSort('progress')} className={sortButtonClasses(planSort === 'progress')}>Progress</button>
-                            </>
-                        )}
-                        {activeTab === 'tutor' && (
-                            <>
-                                <span className="text-xs text-[var(--color-text-secondary)]">Sort by:</span>
-                                <button onClick={() => setChatSort('date')} className={sortButtonClasses(chatSort === 'date')}>Date</button>
-                                <button onClick={() => setChatSort('messages')} className={sortButtonClasses(chatSort === 'messages')}>Messages</button>
+                                <span className="text-xs text-[var(--color-text-secondary)]">Sort:</span>
+                                <button
+                                    onClick={() => setPlanSort('date')}
+                                    className={`px-3 py-1 rounded-lg text-xs font-semibold border ${planSort === 'date' ? 'bg-cyan-500/10 border-cyan-400/40 text-cyan-400' : 'bg-[var(--color-surface-secondary)] border-[var(--color-border)] text-[var(--color-text-secondary)]'}`}
+                                >
+                                    Date
+                                </button>
+                                <button
+                                    onClick={() => setPlanSort('progress')}
+                                    className={`px-3 py-1 rounded-lg text-xs font-semibold border ${planSort === 'progress' ? 'bg-cyan-500/10 border-cyan-400/40 text-cyan-400' : 'bg-[var(--color-surface-secondary)] border-[var(--color-border)] text-[var(--color-text-secondary)]'}`}
+                                >
+                                    Progress
+                                </button>
                             </>
                         )}
                         {(activeTab === 'plans' || activeTab === 'tutor') && (
-                            <button onClick={() => setSortDirection(d => d === 'asc' ? 'desc' : 'asc')} className="p-1.5 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition rounded-md hover:bg-[var(--color-surface-secondary)]">
-                                {sortDirection === 'desc' ? <SortDescendingIcon className="w-5 h-5" /> : <SortAscendingIcon className="w-5 h-5" />}
+                            <button
+                                onClick={() => setSortDirection(d => d === 'asc' ? 'desc' : 'asc')}
+                                className="p-1.5 text-[var(--color-text-secondary)] hover:text-white rounded-lg bg-[var(--color-surface-secondary)] border border-[var(--color-border)]"
+                            >
+                                {sortDirection === 'desc' ? <SortDescendingIcon className="w-4 h-4" /> : <SortAscendingIcon className="w-4 h-4" />}
                             </button>
                         )}
                     </div>
                 </div>
 
-                {/* Tab Content */}
+                {/* Content */}
                 <div className="space-y-4">
                     {activeTab === 'plans' && (
                         sortedAndFilteredPlans.length > 0 ? (
                             sortedAndFilteredPlans.map(plan => <PlanHistoryItem key={plan.id} plan={plan} onPlanUpdate={handlePlanUpdate} />)
                         ) : (
                             <EmptyState
-                                icon={<BookOpenIcon />}
+                                icon={<BookOpenIcon className="w-8 h-8" />}
                                 title={searchQuery ? "No Plans Match Your Search" : "No Study Plans Yet"}
-                                subtitle={searchQuery ? "Try a different search term." : "Create a new study plan in the 'Planner' tab to get started."}
+                                subtitle={searchQuery ? "Try a different search keyword." : "Create your first personalized study plan in the Planner tab!"}
+                                actionText="Create Study Plan"
+                                onAction={() => onNavigate?.('planner')}
                             />
                         )
                     )}
@@ -498,9 +668,11 @@ const Dashboard: React.FC = () => {
                             sortedAndFilteredTutorChats.map(session => <ChatHistoryItem key={session.id} session={session} />)
                         ) : (
                             <EmptyState
-                                icon={<ChatBubbleIcon />}
+                                icon={<ChatBubbleIcon className="w-8 h-8" />}
                                 title={searchQuery ? "No Chats Match Your Search" : "No Tutor Chats Yet"}
-                                subtitle={searchQuery ? "Try a different search term." : "Start a conversation with the 'AI Tutor' to see your history here."}
+                                subtitle={searchQuery ? "Try searching for a different subject." : "Start learning and asking doubts with your AI Tutor."}
+                                actionText="Open AI Tutor"
+                                onAction={() => onNavigate?.('tutor')}
                             />
                         )
                     )}
@@ -509,9 +681,11 @@ const Dashboard: React.FC = () => {
                             <CompanionChatHistoryItem messages={companionChat} />
                         ) : (
                             <EmptyState
-                                icon={<GeneralChatIcon />}
+                                icon={<GeneralChatIcon className="w-8 h-8" />}
                                 title={searchQuery ? "No Companion Chat Match" : "No Companion Chat Yet"}
-                                subtitle={searchQuery ? "Your search didn't match any messages in this chat." : "Talk with your 'Companion' and the conversation will be saved."}
+                                subtitle="Chat with your friendly AI study companion whenever you want!"
+                                actionText="Open Companion"
+                                onAction={() => onNavigate?.('companion')}
                             />
                         )
                     )}

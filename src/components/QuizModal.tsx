@@ -180,3 +180,4 @@ const QuizModal: React.FC<QuizModalProps> = ({ quiz, curriculum, subject, onClos
 };
 
 export default QuizModal;
+

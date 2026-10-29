@@ -10,3 +10,4 @@ export const DocumentIcon: React.FC<{ className?: string }> = ({ className = 'w-
         />
     </svg>
 );
+

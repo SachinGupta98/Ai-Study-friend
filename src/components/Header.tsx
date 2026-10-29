@@ -3,6 +3,7 @@ import { LogoutIcon } from './icons/LogoutIcon';
 import { DownloadIcon } from './icons/DownloadIcon';
 import { SunIcon } from './icons/SunIcon';
 import { MoonIcon } from './icons/MoonIcon';
+import { usePomodoro, PHASE_CONFIG } from '../contexts/PomodoroContext';
 
 type Theme = 'light' | 'dark';
 
@@ -13,6 +14,9 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ username, onLogout, onInstallClick }) => {
+  const { formatTime, timeLeft, isRunning, phase, togglePanel, currentSoundscape } = usePomodoro();
+  const currentConfig = PHASE_CONFIG[phase];
+
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof localStorage !== 'undefined' && localStorage.getItem('theme')) {
       return localStorage.getItem('theme') as Theme;
@@ -20,7 +24,7 @@ const Header: React.FC<HeaderProps> = ({ username, onLogout, onInstallClick }) =
     if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
       return 'dark';
     }
-    return 'dark'; // Default to sleek dark mode
+    return 'dark';
   });
 
   useEffect(() => {
@@ -74,15 +78,37 @@ const Header: React.FC<HeaderProps> = ({ username, onLogout, onInstallClick }) =
           </div>
         </div>
 
-        {/* User Chip & Actions */}
+        {/* User Chip, Timer & Actions */}
         {username && (
-          <div className="flex items-center gap-1.5 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Live Focus Timer Pill (Top Header Placement — Never blocks chat buttons!) */}
+            <button
+              onClick={togglePanel}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--color-surface-secondary)]/90 hover:bg-[var(--color-surface-tertiary)] border border-[var(--color-border)] hover:border-cyan-500/40 transition duration-200 shadow-sm group cursor-pointer"
+              title="Click to open Focus Timer & Ambient Soundscapes"
+            >
+              <div
+                className="w-2.5 h-2.5 rounded-full flex-shrink-0 relative"
+                style={{ backgroundColor: currentConfig.ringColor }}
+              >
+                {isRunning && (
+                  <span className="animate-ping absolute inset-0 rounded-full bg-cyan-400 opacity-75" />
+                )}
+              </div>
+              <span className="text-xs font-mono font-bold text-[var(--color-text-primary)]">
+                {formatTime(timeLeft)}
+              </span>
+              <span className="text-[10px] hidden sm:inline font-semibold text-[var(--color-text-secondary)]">
+                {currentSoundscape !== 'none' ? `🎧 ${currentSoundscape}` : currentConfig.label}
+              </span>
+            </button>
+
             {/* User Pill */}
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--color-surface-secondary)]/80 border border-[var(--color-border)] shadow-sm">
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--color-surface-secondary)]/80 border border-[var(--color-border)] shadow-sm">
               <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 text-white text-[10px] font-black flex items-center justify-center shadow-inner">
                 {getInitials(username)}
               </div>
-              <span className="text-xs font-semibold text-[var(--color-text-primary)] truncate max-w-[130px]">
+              <span className="text-xs font-semibold text-[var(--color-text-primary)] truncate max-w-[120px]">
                 {username}
               </span>
             </div>

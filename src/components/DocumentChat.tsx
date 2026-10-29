@@ -371,3 +371,4 @@ const DocumentChat: React.FC = () => {
 };
 
 export default DocumentChat;
+

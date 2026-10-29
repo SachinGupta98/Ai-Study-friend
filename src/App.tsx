@@ -26,9 +26,11 @@ interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
 }
 
+import { PomodoroProvider } from './contexts/PomodoroContext';
+
 type ActiveView = 'planner' | 'tutor' | 'docchat' | 'companion' | 'dashboard';
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
   const [activeView, setActiveView] = useState<ActiveView>('planner');
   const { currentUser, login, logout } = useAuth();
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -159,7 +161,7 @@ const App: React.FC = () => {
               {activeView === 'tutor' && <TutorChat />}
               {activeView === 'docchat' && <DocumentChat />}
               {activeView === 'companion' && <GeneralChat />}
-              {activeView === 'dashboard' && <Dashboard />}
+              {activeView === 'dashboard' && <Dashboard onNavigate={(v) => setActiveView(v as any)} />}
             </motion.div>
           </AnimatePresence>
         </main>
@@ -178,9 +180,17 @@ const App: React.FC = () => {
         }}
       />
 
-      {/* 🍅 Enhanced Pomodoro Widget with Focus Soundscapes */}
+      {/* 🍅 Focus Soundscapes & Timer Modal (Top-docked, never blocks bottom chat inputs) */}
       <PomodoroWidget />
     </div>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <PomodoroProvider>
+      <AppContent />
+    </PomodoroProvider>
   );
 };
 
