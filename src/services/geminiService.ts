@@ -482,6 +482,125 @@ Respond ONLY with the raw JSON array. Do not include markdown formatting or expl
     }
 };
 
+export const askDocumentStream = async function* (
+    docContext: string,
+    history: ChatMessage[],
+    question: string
+) {
+    const trimmedContext = docContext.slice(0, 18000);
+    const systemInstruction = `You are "Vidya Doc AI", an expert academic document analyzer and tutor.
+You have been provided with the student's study document/notes below.
+Always base your answers primarily on this document context. If relevant, cite page numbers or sections mentioned in the text.
+Explain concepts clearly, break down formulas step-by-step, and format math using KaTeX ($...$ for inline, $$...$$ for block).
+If the document doesn't contain the answer, politely mention that and provide the correct academic explanation.
+
+=== DOCUMENT CONTENT ===
+${trimmedContext}
+=========================`;
+
+    const historyForModel = history.length > 10 ? history.slice(-10) : history;
+    const messages: any[] = [
+        { role: "system", content: systemInstruction },
+        ...transformHistory(historyForModel),
+        { role: "user", content: question }
+    ];
+
+    try {
+        const response = await makeGroqRequest({
+            model: DEFAULT_MODEL,
+            messages,
+            stream: true,
+            temperature: 0.4
+        });
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error("No reader available");
+        const decoder = new TextDecoder("utf-8");
+        let buffer = "";
+
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() || "";
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (trimmed.startsWith("data:") && trimmed !== "data: [DONE]") {
+                    try {
+                        const json = JSON.parse(trimmed.substring(5));
+                        const text = json.choices[0]?.delta?.content || "";
+                        if (text) yield { text };
+                    } catch (e) { /* ignore */ }
+                }
+            }
+        }
+    } catch (error) {
+        throw handleGroqError(error, 'askDocumentStream');
+    }
+};
+
+export const summarizeDocument = async (docText: string): Promise<string> => {
+    const trimmedContext = docText.slice(0, 15000);
+    const prompt = `You are an expert educator. Provide an executive summary of this study material.
+Structure your output in clean Markdown:
+1. 📌 **Executive Overview** (2-3 concise paragraphs)
+2. 🔑 **Core Concepts & Definitions** (bullet points with bold terms)
+3. 📐 **Important Formulas / Rules / Theorems** (format math using KaTeX $...$)
+4. 💡 **Top 5 High-Yield Exam Takeaways**
+
+Document:
+"""
+${trimmedContext}
+"""`;
+
+    try {
+        const response = await makeGroqRequest({
+            model: DEFAULT_MODEL,
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.5
+        });
+        const data = await response.json();
+        return data.choices[0]?.message?.content || "";
+    } catch (error) {
+        throw handleGroqError(error, 'summarizeDocument');
+    }
+};
+
+export const generateQuizFromDoc = async (docText: string): Promise<Quiz> => {
+    const trimmedContext = docText.slice(0, 12000);
+    const prompt = `Based strictly on this study document, create a challenging 5-question multiple choice test.
+Format as STRICT JSON conforming exactly to this schema:
+{
+  "questions": [
+    {
+      "question": "Question text (use $..$ for math)",
+      "options": ["Opt A", "Opt B", "Opt C", "Opt D"],
+      "correct_answer": "Opt A",
+      "explanation": "Detailed explanation citing concepts from the text"
+    }
+  ]
+}
+
+Document:
+"""
+${trimmedContext}
+"""`;
+
+    try {
+        const response = await makeGroqRequest({
+            model: DEFAULT_MODEL,
+            messages: [{ role: 'user', content: prompt }],
+            response_format: { type: 'json_object' },
+            temperature: 0.6
+        });
+        const data = await response.json();
+        const jsonText = data.choices[0]?.message?.content || "{}";
+        return cleanAndParseJson(jsonText);
+    } catch (error) {
+        throw handleGroqError(error, 'generateQuizFromDoc');
+    }
+};
+
 export const generateFlashcards = async (
     text: string,
     count: number = 6

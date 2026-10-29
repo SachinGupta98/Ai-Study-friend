@@ -260,9 +260,22 @@ const StudyPlanner: React.FC = () => {
     }, [isPlanSaved]);
 
     return (
-        <div className="p-4 md:p-6 space-y-6">
-            <div className="bg-[var(--color-surface-primary)] border border-[var(--color-border)] rounded-lg p-6 space-y-4">
-                <h2 className="text-xl font-bold text-[var(--color-text-primary)]">Create Your Personalized Study Plan</h2>
+        <div className="p-4 md:p-6 space-y-6 max-w-6xl mx-auto">
+            <div className="bg-[var(--color-surface-primary)]/75 backdrop-blur-2xl border border-[var(--color-border)] rounded-2xl p-6 md:p-8 space-y-5 shadow-xl relative overflow-hidden">
+                <div className="absolute -top-16 -right-16 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+                
+                <div className="flex items-center gap-2.5">
+                    <span className="text-2xl">📅</span>
+                    <div>
+                        <h2 className="text-xl md:text-2xl font-black bg-gradient-to-r from-cyan-400 via-sky-400 to-indigo-400 bg-clip-text text-transparent">
+                            Personalized AI Study Roadmap
+                        </h2>
+                        <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
+                            Curated for CBSE / State Boards (Class 8–12), JEE, NEET, and competitive exams
+                        </p>
+                    </div>
+                </div>
+
                 <TopicSelector
                     curriculum={curriculum}
                     setCurriculum={setCurriculum}
@@ -270,39 +283,61 @@ const StudyPlanner: React.FC = () => {
                     setSubject={setSubject}
                     disabled={isLoading}
                 />
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label htmlFor="goal" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Your Goal</label>
+                        <label htmlFor="goal" className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)] mb-1.5">
+                            🎯 Your Specific Goal
+                        </label>
                         <input
                             type="text"
                             id="goal"
                             value={goal}
                             onChange={(e) => setGoal(e.target.value)}
                             disabled={isLoading}
-                            className="w-full bg-[var(--color-surface-secondary)] border border-[var(--color-border)] rounded-md p-2 text-[var(--color-text-primary)] focus:ring-2 focus:ring-[var(--color-accent-ring)] focus:border-[var(--color-accent-text)] transition"
-                            placeholder="e.g., Cover entire syllabus"
+                            className="w-full bg-[var(--color-surface-secondary)]/80 border border-[var(--color-border)] rounded-xl p-3 text-sm text-[var(--color-text-primary)] focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition"
+                            placeholder="e.g., Score 95%+ in Board Exam, Master Calculus"
                         />
                     </div>
                     <div>
-                        <label htmlFor="duration" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">Duration</label>
+                        <div className="flex items-center justify-between mb-1.5">
+                            <label htmlFor="duration" className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">
+                                ⏳ Duration / Timeline
+                            </label>
+                            <div className="flex gap-1">
+                                {['4 weeks', '3 months', '6 months'].map((d) => (
+                                    <button
+                                        key={d}
+                                        type="button"
+                                        onClick={() => setDuration(d)}
+                                        className="text-[10px] px-2 py-0.5 rounded-md bg-[var(--color-surface-secondary)] hover:bg-[var(--color-surface-tertiary)] border border-[var(--color-border)] text-[var(--color-text-secondary)] transition"
+                                    >
+                                        {d}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                         <input
                             type="text"
                             id="duration"
                             value={duration}
                             onChange={(e) => setDuration(e.target.value)}
                             disabled={isLoading}
-                            className="w-full bg-[var(--color-surface-secondary)] border border-[var(--color-border)] rounded-md p-2 text-[var(--color-text-primary)] focus:ring-2 focus:ring-[var(--color-accent-ring)] focus:border-[var(--color-accent-text)] transition"
+                            className="w-full bg-[var(--color-surface-secondary)]/80 border border-[var(--color-border)] rounded-xl p-3 text-sm text-[var(--color-text-primary)] focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition"
                             placeholder="e.g., 6 weeks"
                         />
                     </div>
                 </div>
+
                 <button
                     onClick={handleGeneratePlan}
                     disabled={isLoading}
-                    className="w-full flex items-center justify-center gap-2 bg-[var(--color-accent-bg)] hover:bg-[var(--color-accent-bg-hover)] disabled:bg-[var(--color-surface-tertiary)] disabled:text-[var(--color-text-secondary)] text-[var(--color-text-on-accent)] font-bold py-2 px-4 rounded-md transition-transform duration-200 active:scale-95"
+                    className="w-full flex items-center justify-center gap-2.5 bg-gradient-to-r from-cyan-500 via-sky-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 disabled:opacity-50 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg shadow-cyan-500/25 transition-all duration-300 active:scale-98"
                 >
                     {isLoading ? <Spinner /> : <SparklesIcon className="w-5 h-5" />}
-                    {isLoading ? 'Generating Plan...' : 'Generate with AI'}
+                    <span className="text-sm font-black tracking-wide">
+                        {isLoading ? 'Crafting Your Master Plan...' : 'Generate AI Study Plan'}
+                    </span>
                 </button>
             </div>
 

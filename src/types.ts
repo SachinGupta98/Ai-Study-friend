@@ -16,7 +16,21 @@ export interface Quiz {
   questions: QuizQuestion[];
 }
 
-export type Curriculum = 'NCERT' | 'JEE' | 'NEET' | 'Programming Help' | 'Commerce' | 'Arts' | 'CAT' | 'GATE' | 'UPSC';
+export type Curriculum = 
+  | 'Class 8th' 
+  | 'Class 9th' 
+  | 'Class 10th' 
+  | 'Class 11th' 
+  | 'Class 12th' 
+  | 'NCERT' 
+  | 'JEE' 
+  | 'NEET' 
+  | 'Programming Help' 
+  | 'Commerce' 
+  | 'Arts' 
+  | 'CAT' 
+  | 'GATE' 
+  | 'UPSC';
 
 export interface Task {
   text: string;
