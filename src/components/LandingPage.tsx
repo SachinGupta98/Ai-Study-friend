@@ -277,7 +277,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onAuthSuccess }) => {
                     You
                   </div>
                   <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
-                    "Can you explain the quadratic formula and prove irrationality of $\sqrt{3}$ from Class 10th Real Numbers?"
+                    &quot;Can you explain the quadratic formula and prove irrationality of √3 from Class 10th Real Numbers?&quot;
                   </p>
                 </div>
 
@@ -290,13 +290,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onAuthSuccess }) => {
                       <span>📌 Concept Overview: Fundamental Theorem of Arithmetic</span>
                     </p>
                     <p className="text-slate-300 text-xs">
-                      In the updated 2026–27 CBSE curriculum, we prove irrationality by contradiction. Assume $\sqrt{3} = \frac{a}{b}$ where $a$ and $b$ are coprime integers ($b \neq 0$):
+                      In the updated 2026–27 CBSE curriculum, we prove irrationality by contradiction. Assume √3 = a/b where a and b are coprime integers (b ≠ 0):
                     </p>
                     <div className="p-2.5 rounded-xl bg-slate-950/80 border border-cyan-500/20 font-mono text-xs text-cyan-300 text-center">
-                      $$ 3b^2 = a^2 \implies 3 \mid a^2 \implies 3 \mid a $$
+                      3b² = a² ⟹ 3 divides a² ⟹ 3 divides a
                     </div>
                     <p className="text-xs text-slate-400">
-                      Since both $a$ and $b$ share a common factor of 3, this contradicts our coprimality premise. Hence, $\sqrt{3}$ is strictly irrational! 🎯
+                      Since both a and b share a common factor of 3, this contradicts our coprimality premise. Hence, √3 is strictly irrational! 🎯
                     </p>
                   </div>
                 </div>
@@ -491,3 +491,4 @@ const LandingPage: React.FC<LandingPageProps> = ({ onAuthSuccess }) => {
 };
 
 export default LandingPage;
+

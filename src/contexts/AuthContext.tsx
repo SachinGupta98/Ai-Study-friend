@@ -47,17 +47,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     // 1. Load the current session immediately (handles page refresh)
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
-      setCurrentUser(extractDisplayName(s));
-      setIsLoading(false);
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session: s } }) => {
+        setSession(s);
+        setCurrentUser(extractDisplayName(s));
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        console.error('[AuthContext] Session check error:', err);
+        setIsLoading(false);
+      });
 
     // 2. Subscribe to future auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, s) => {
         setSession(s);
         setCurrentUser(extractDisplayName(s));
+        setIsLoading(false);
       }
     );
 
