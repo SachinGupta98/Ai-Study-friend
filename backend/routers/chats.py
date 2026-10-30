@@ -39,3 +39,16 @@ def save_companion_chat(
         db.add(chat)
     db.commit()
     return {"message": "Chat saved successfully."}
+
+
+@router.delete("/companion", status_code=status.HTTP_200_OK)
+def clear_companion_chat(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Clear all companion chat history for the current user."""
+    chat = db.query(GeneralChat).filter(GeneralChat.user_id == current_user.id).first()
+    if chat:
+        chat.data = {"messages": []}
+        db.commit()
+    return {"message": "Companion chat cleared successfully."}

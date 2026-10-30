@@ -21,8 +21,11 @@ import {
     apiUpsertPlan,
     apiGetSessions,
     apiUpsertSession,
+    apiDeleteSession,
+    apiClearAllSessions,
     apiGetCompanionChat,
     apiSaveCompanionChat,
+    apiClearCompanionChat,
     apiGetStats,
     apiSaveQuizResult,
     apiSaveFocusSession,
@@ -90,6 +93,14 @@ export const getTutorChatHistory = async (): Promise<TutorChatSession[]> => {
     return apiGetSessions();
 };
 
+export const deleteTutorChatSession = async (sessionId: string): Promise<void> => {
+    await apiDeleteSession(sessionId);
+};
+
+export const clearAllTutorSessions = async (): Promise<void> => {
+    await apiClearAllSessions();
+};
+
 // ── Companion Chat ────────────────────────────────────────────────────────────
 
 export const saveCompanionChatHistory = async (messages: ChatMessage[]): Promise<void> => {
@@ -99,6 +110,10 @@ export const saveCompanionChatHistory = async (messages: ChatMessage[]): Promise
 
 export const getCompanionChatHistory = async (): Promise<ChatMessage[]> => {
     return apiGetCompanionChat();
+};
+
+export const clearCompanionChatHistory = async (): Promise<void> => {
+    await apiClearCompanionChat();
 };
 
 // ── Quiz Results & User Stats ─────────────────────────────────────────────────

@@ -169,6 +169,14 @@ export const apiUpsertSession = async (session: any): Promise<void> => {
   });
 };
 
+export const apiDeleteSession = async (sessionId: string): Promise<void> => {
+  await apiFetch(`/sessions/${sessionId}`, { method: 'DELETE' });
+};
+
+export const apiClearAllSessions = async (): Promise<void> => {
+  await apiFetch('/sessions', { method: 'DELETE' });
+};
+
 // ── Companion Chat API Calls ──────────────────────────────────────────────────
 
 export const apiGetCompanionChat = async (): Promise<any[]> => {
@@ -181,6 +189,10 @@ export const apiSaveCompanionChat = async (messages: any[]): Promise<void> => {
     method: 'POST',
     body: JSON.stringify({ messages }),
   });
+};
+
+export const apiClearCompanionChat = async (): Promise<void> => {
+  await apiFetch('/chats/companion', { method: 'DELETE' });
 };
 
 // ── Stats API Calls ───────────────────────────────────────────────────────────

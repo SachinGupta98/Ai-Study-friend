@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { exportChatToPdf } from '../utils/pdfExportService';
 import { getGeneralChatResponseStream } from '../services/geminiService';
-import { getCompanionChatHistory, saveCompanionChatHistory } from '../services/authService';
+import { getCompanionChatHistory, saveCompanionChatHistory, clearCompanionChatHistory } from '../services/authService';
 import { ChatMessage, GroundingSource } from '../types';
 import Spinner from './Spinner';
 import { PaperclipIcon } from './icons/PaperclipIcon';
@@ -11,10 +11,12 @@ import { UserMessage, ModelMessage } from './ChatMessage';
 import { fileToDataUrl } from '../utils/fileUtils';
 import { ShareIcon } from './icons/ShareIcon';
 import { PdfIcon } from './icons/PdfIcon';
+import { TrashIcon } from './icons/TrashIcon';
 import TypingIndicator from './TypingIndicator';
 import { MicrophoneIcon } from './icons/MicrophoneIcon';
 import { StopCircleIcon } from './icons/StopCircleIcon';
 import { useSpeechToText } from '../hooks/useSpeechToText';
+import toast from 'react-hot-toast';
 
 const GeneralChat: React.FC = () => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -23,6 +25,7 @@ const GeneralChat: React.FC = () => {
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isTyping, setIsTyping] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
+    const [isClearing, setIsClearing] = useState(false);
     const [chatError, setChatError] = useState<string | null>(null);
 
     const chatEndRef = useRef<HTMLDivElement>(null);
@@ -300,6 +303,35 @@ const GeneralChat: React.FC = () => {
         }
     }, [messages]);
 
+    const handleClearChat = useCallback(async () => {
+        if (messages.length <= 1) return;
+        if (!window.confirm("Are you sure you want to clear your companion chat history? This cannot be undone.")) {
+            return;
+        }
+
+        setIsClearing(true);
+        try {
+            await clearCompanionChatHistory();
+            const freshGreeting: ChatMessage = {
+                role: 'model',
+                text: "Hi there! Feel free to chat with me about anything on your mind. How's your day going?",
+                image: undefined
+            };
+            setMessages([freshGreeting]);
+            messagesRef.current = [freshGreeting];
+            setInput('');
+            setSelectedImage(null);
+            setPreviewUrl(null);
+            setChatError(null);
+            toast.success("Companion chat history cleared!");
+        } catch (err: any) {
+            console.error("Failed to clear companion chat:", err);
+            toast.error("Failed to clear chat. Please try again.");
+        } finally {
+            setIsClearing(false);
+        }
+    }, [messages]);
+
     return (
         <div className="flex flex-col h-full">
             <header className="p-4 bg-[var(--color-surface-primary)]/80 backdrop-blur-sm border-b border-[var(--color-border)] flex items-center justify-between">
@@ -308,6 +340,15 @@ const GeneralChat: React.FC = () => {
                     <p className="text-sm text-[var(--color-text-secondary)]">Your friendly space to chat and unwind</p>
                 </div>
                 <div className="flex items-center gap-1">
+                    <button
+                        onClick={handleClearChat}
+                        disabled={messages.length <= 1 || isClearing}
+                        className="p-2 text-[var(--color-text-secondary)] hover:text-red-400 disabled:text-[var(--color-surface-tertiary)] disabled:cursor-not-allowed transition rounded-full hover:bg-red-500/10"
+                        aria-label="Clear Chat"
+                        title="Clear Chat History"
+                    >
+                        {isClearing ? <Spinner className="w-5 h-5 !text-red-400" /> : <TrashIcon className="w-5 h-5" />}
+                    </button>
                     <button
                         onClick={handleShareChat}
                         disabled={messages.length <= 1}

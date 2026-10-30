@@ -50,6 +50,17 @@ def upsert_session(
     return session
 
 
+@router.delete("", status_code=status.HTTP_200_OK)
+def clear_all_sessions(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Delete all tutor chat sessions for the current user."""
+    db.query(TutorSession).filter(TutorSession.user_id == current_user.id).delete()
+    db.commit()
+    return {"message": "All tutor sessions cleared."}
+
+
 @router.delete("/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_session(
     session_id: str,

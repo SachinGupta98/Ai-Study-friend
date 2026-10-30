@@ -4,8 +4,12 @@ import {
     getTutorChatHistory,
     getCompanionChatHistory,
     saveStudyPlan,
-    getUserStats
+    getUserStats,
+    deleteTutorChatSession,
+    clearAllTutorSessions,
+    clearCompanionChatHistory
 } from '../services/authService';
+import { TrashIcon } from './icons/TrashIcon';
 import { StudyPlan, TutorChatSession, ChatMessage } from '../types';
 import { WeeklyPlanCard } from './StudyPlanner';
 import { UserMessage, ModelMessage } from './ChatMessage';
@@ -151,8 +155,24 @@ const PlanHistoryItem: React.FC<{ plan: StudyPlan; onPlanUpdate: (updatedPlan: S
                             {isRescheduling ? <Spinner className="w-4 h-4 !text-cyan-400" /> : <SparklesIcon className="w-4 h-4" />}
                         </button>
                     )}
-                    <div className={`w-8 h-8 rounded-xl bg-[var(--color-surface-secondary)] flex items-center justify-center text-[var(--color-text-secondary)] transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
-                        ▼
+                    <div className="flex items-center gap-3">
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm("Clear all AI companion chat history? This cannot be undone.")) {
+                                    onClearCompanionChat();
+                                }
+                            }}
+                            className="px-2.5 py-1 text-xs font-semibold text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl transition flex items-center gap-1.5"
+                            title="Clear companion conversation"
+                        >
+                            <TrashIcon className="w-3.5 h-3.5" />
+                            <span>Clear Chat</span>
+                        </button>
+                        <div className={`w-8 h-8 rounded-xl bg-[var(--color-surface-secondary)] flex items-center justify-center text-[var(--color-text-secondary)] transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+                            ▼
+                        </div>
                     </div>
                 </div>
 
@@ -192,7 +212,10 @@ const PlanHistoryItem: React.FC<{ plan: StudyPlan; onPlanUpdate: (updatedPlan: S
     );
 };
 
-const ChatHistoryItem: React.FC<{ session: TutorChatSession }> = ({ session }) => {
+const ChatHistoryItem: React.FC<{
+    session: TutorChatSession;
+    onDeleteSession: (sessionId: string) => void;
+}> = ({ session, onDeleteSession }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const lastUpdated = new Date(session.lastUpdatedAt).toLocaleString('en-IN', {
         day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit'
@@ -221,8 +244,23 @@ const ChatHistoryItem: React.FC<{ session: TutorChatSession }> = ({ session }) =
                             {previewText}
                         </p>
                     </div>
-                    <div className={`w-8 h-8 rounded-xl bg-[var(--color-surface-secondary)] flex items-center justify-center text-[var(--color-text-secondary)] transition-transform flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`}>
-                        ▼
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm(`Delete chat session for ${session.subject}?`)) {
+                                    onDeleteSession(session.id);
+                                }
+                            }}
+                            className="p-1.5 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition"
+                            title="Delete this chat session"
+                        >
+                            <TrashIcon className="w-4 h-4" />
+                        </button>
+                        <div className={`w-8 h-8 rounded-xl bg-[var(--color-surface-secondary)] flex items-center justify-center text-[var(--color-text-secondary)] transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+                            ▼
+                        </div>
                     </div>
                 </div>
             </button>
@@ -237,7 +275,10 @@ const ChatHistoryItem: React.FC<{ session: TutorChatSession }> = ({ session }) =
     );
 };
 
-const CompanionChatHistoryItem: React.FC<{ messages: ChatMessage[] }> = ({ messages }) => {
+const CompanionChatHistoryItem: React.FC<{
+    messages: ChatMessage[];
+    onClearCompanionChat: () => void;
+}> = ({ messages, onClearCompanionChat }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     if (messages.length <= 1) return null;
 
@@ -334,6 +375,47 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             }
         };
         fetchData();
+    }, []);
+
+    const handleDeleteSession = useCallback(async (sessionId: string) => {
+        try {
+            await deleteTutorChatSession(sessionId);
+            setTutorChats(prev => prev.filter(s => s.id !== sessionId));
+            toast.success("Tutor chat session deleted.");
+            const newStats = await getUserStats();
+            setStats(newStats);
+        } catch (err: any) {
+            console.error("Failed to delete session:", err);
+            toast.error("Failed to delete session.");
+        }
+    }, []);
+
+    const handleClearAllSessions = useCallback(async () => {
+        if (tutorChats.length === 0) return;
+        if (!confirm("Are you sure you want to delete ALL tutor chat sessions? This cannot be undone.")) return;
+        try {
+            await clearAllTutorSessions();
+            setTutorChats([]);
+            toast.success("All tutor chat sessions cleared.");
+            const newStats = await getUserStats();
+            setStats(newStats);
+        } catch (err: any) {
+            console.error("Failed to clear sessions:", err);
+            toast.error("Failed to clear sessions.");
+        }
+    }, [tutorChats]);
+
+    const handleClearCompanionChatInDashboard = useCallback(async () => {
+        try {
+            await clearCompanionChatHistory();
+            setCompanionChat([]);
+            toast.success("Companion chat history cleared.");
+            const newStats = await getUserStats();
+            setStats(newStats);
+        } catch (err: any) {
+            console.error("Failed to clear companion chat:", err);
+            toast.error("Failed to clear companion chat.");
+        }
     }, []);
 
     const handlePlanUpdate = useCallback(async (updatedPlan: StudyPlan) => {
@@ -651,6 +733,17 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                                 </button>
                             </>
                         )}
+                        {activeTab === 'tutor' && tutorChats.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={handleClearAllSessions}
+                                className="px-2.5 py-1 text-xs font-semibold text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-lg transition flex items-center gap-1"
+                                title="Delete all tutor sessions"
+                            >
+                                <TrashIcon className="w-3.5 h-3.5" />
+                                <span>Clear All</span>
+                            </button>
+                        )}
                         {(activeTab === 'plans' || activeTab === 'tutor') && (
                             <button
                                 onClick={() => setSortDirection(d => d === 'asc' ? 'desc' : 'asc')}
@@ -679,7 +772,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                     )}
                     {activeTab === 'tutor' && (
                         sortedAndFilteredTutorChats.length > 0 ? (
-                            sortedAndFilteredTutorChats.map(session => <ChatHistoryItem key={session.id} session={session} />)
+                            sortedAndFilteredTutorChats.map(session => <ChatHistoryItem key={session.id} session={session} onDeleteSession={handleDeleteSession} />)
                         ) : (
                             <EmptyState
                                 icon={<ChatBubbleIcon className="w-8 h-8" />}
@@ -692,7 +785,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                     )}
                     {activeTab === 'companion' && (
                         companionChatMatchesSearch ? (
-                            <CompanionChatHistoryItem messages={companionChat} />
+                            <CompanionChatHistoryItem messages={companionChat} onClearCompanionChat={handleClearCompanionChatInDashboard} />
                         ) : (
                             <EmptyState
                                 icon={<GeneralChatIcon className="w-8 h-8" />}

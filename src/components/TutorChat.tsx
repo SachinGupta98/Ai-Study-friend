@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { exportChatToPdf } from '../utils/pdfExportService';
 import { getTutorResponseStream, formatCode, generateQuiz, generateFlashcards } from '../services/geminiService';
-import { getTutorChatHistory, saveTutorChatSession, saveQuizResult } from '../services/authService';
+import { getTutorChatHistory, saveTutorChatSession, saveQuizResult, deleteTutorChatSession } from '../services/authService';
 import { Curriculum, ChatMessage, Quiz, QuizRecord, FlashcardDeck, Flashcard } from '../types';
 import TopicSelector from './TopicSelector';
 import FlashcardPanel from './FlashcardPanel';
@@ -19,6 +19,7 @@ import DoubtSolver from './DoubtSolver';
 import { ArrowUturnLeftIcon } from './icons/ArrowUturnLeftIcon';
 import { ShareIcon } from './icons/ShareIcon';
 import { PdfIcon } from './icons/PdfIcon';
+import { TrashIcon } from './icons/TrashIcon';
 import TypingIndicator from './TypingIndicator';
 import { QuizIcon } from './icons/QuizIcon';
 import { MicrophoneIcon } from './icons/MicrophoneIcon';
@@ -207,6 +208,39 @@ const TutorChat: React.FC = () => {
         }
         resetQuizState();
     }, []);
+
+    const handleClearChat = useCallback(async () => {
+        if (messages.length <= 1) return;
+        if (!window.confirm("Are you sure you want to clear this tutor conversation?")) {
+            return;
+        }
+
+        try {
+            if (currentSessionId) {
+                await deleteTutorChatSession(currentSessionId);
+            }
+            const { curriculum, subject } = sessionDetailsRef.current;
+            let initialMessage = `Hi! I'm Vidya AI, your personal tutor for ${subject}. How can I help you today? You can ask me questions or upload an image of a problem.`;
+            if (curriculum === 'Programming Help') {
+                initialMessage = `Hi! I'm Vidya AI, your expert coding mentor for ${subject}. Ask me to explain a concept, debug your code, or show you best practices!`;
+            }
+            setMessages([{ role: 'model', text: initialMessage, image: undefined }]);
+            messagesRef.current = [{ role: 'model', text: initialMessage, image: undefined }];
+            setInput('');
+            setSelectedImage(null);
+            setPreviewUrl(null);
+            setFlashcardDecks([]);
+            setActiveDeckIndex(null);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+            resetQuizState();
+            toast.success("Tutor chat cleared!");
+        } catch (err: any) {
+            console.error("Failed to delete session:", err);
+            toast.error("Failed to clear session.");
+        }
+    }, [currentSessionId, messages]);
 
     const handleSendMessage = useCallback(async () => {
         if ((!input.trim() && !selectedImage) || isTyping || isFormatting || isRecording) return;
@@ -832,9 +866,25 @@ const TutorChat: React.FC = () => {
                         >
                             Change Topic
                         </button>
+                        <button
+                            onClick={handleClearChat}
+                            disabled={messages.length <= 1}
+                            className="text-sm text-red-400 hover:text-red-300 hover:underline disabled:opacity-40"
+                        >
+                            Clear Chat
+                        </button>
                     </div>
                 </div>
                 <div className="flex items-center gap-1">
+                    <button
+                        onClick={handleClearChat}
+                        disabled={messages.length <= 1}
+                        className="p-2 text-[var(--color-text-secondary)] hover:text-red-400 disabled:text-[var(--color-surface-tertiary)] disabled:cursor-not-allowed transition rounded-full hover:bg-red-500/10"
+                        aria-label="Clear Chat"
+                        title="Clear Chat History"
+                    >
+                        <TrashIcon className="w-5 h-5" />
+                    </button>
                     <button
                         onClick={handleGenerateQuiz}
                         disabled={isGeneratingQuiz || !!quiz}
