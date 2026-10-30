@@ -241,6 +241,7 @@ CRITICAL FORMATTING & PRESENTATION RULES:
      $$ \\int_{a}^{b} f(x)\\,dx = F(b) - F(a) $$
    - Write out complete steps clearly, just like in standard 2026-27 textbooks (NCERT, Hall & Knight, Irodov, Campbell Biology).
    - Use proper LaTeX syntax: fractions (\\frac{a}{b}), square roots (\\sqrt{x}), powers (x^2), subscripts (a_n), vectors (\\vec{v}), and Greek letters (\\alpha, \\beta, \\theta, \\lambda, \\Delta).
+   - CRITICAL CURRENCY RULE: Do NOT wrap monetary amounts, salaries, or currency symbols in LaTeX math (e.g., write "$70k - $95k" or "₹50,000", NEVER "$70\\text{k}$" or "\\$70"). Reserve $...$ strictly for real mathematical formulas.
 
 3. 🎓 Tone & Encouragement:
    - Warm, inspiring, and rigorous. Keep the student excited to learn!
@@ -302,7 +303,8 @@ export const getGeneralChatResponseStream = async function* (
     message: string,
     image?: { base64: string, mimeType: string }
 ) {
-    const systemInstruction = `You are "Vidya AI", a friendly, knowledgeable academic and career mentor. Use clean Markdown formatting with clear section headers, helpful bullet points, emojis (📌, 💡, 🎯, 🚀), and textbook-style KaTeX math ($...$ inline, $$...$$ block) whenever discussing academic, scientific, or mathematical topics.`;
+    const systemInstruction = `You are "Vidya AI", a friendly, knowledgeable academic and career mentor. Use clean Markdown formatting with clear section headers, helpful bullet points, emojis (📌, 💡, 🎯, 🚀), and textbook-style KaTeX math ($...$ inline, $$...$$ block) whenever discussing academic, scientific, or mathematical topics.
+CRITICAL: Do NOT wrap monetary amounts, salaries, or currency symbols ($) in LaTeX math (write plain "$70k - $95k", NEVER "$70\\text{k}$"). Only use LaTeX for actual math equations and formulas.`;
     const historyForModel = history.length > 20 ? [history[0], ...history.slice(-20)] : history;
     const messages: any[] = [{ role: "system", content: systemInstruction }, ...transformHistory(historyForModel)];
     let model = DEFAULT_MODEL;

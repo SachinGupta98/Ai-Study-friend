@@ -333,128 +333,145 @@ const GeneralChat: React.FC = () => {
     }, [messages]);
 
     return (
-        <div className="flex flex-col h-full">
-            <header className="p-4 bg-[var(--color-surface-primary)]/80 backdrop-blur-sm border-b border-[var(--color-border)] flex items-center justify-between">
-                <div>
-                    <h2 className="text-lg font-bold text-[var(--color-text-primary)]">AI Companion</h2>
-                    <p className="text-sm text-[var(--color-text-secondary)]">Your friendly space to chat and unwind</p>
-                </div>
-                <div className="flex items-center gap-1">
-                    <button
-                        onClick={handleClearChat}
-                        disabled={messages.length <= 1 || isClearing}
-                        className="p-2 text-[var(--color-text-secondary)] hover:text-red-400 disabled:text-[var(--color-surface-tertiary)] disabled:cursor-not-allowed transition rounded-full hover:bg-red-500/10"
-                        aria-label="Clear Chat"
-                        title="Clear Chat History"
-                    >
-                        {isClearing ? <Spinner className="w-5 h-5 !text-red-400" /> : <TrashIcon className="w-5 h-5" />}
-                    </button>
-                    <button
-                        onClick={handleShareChat}
-                        disabled={messages.length <= 1}
-                        className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-accent-text)] disabled:text-[var(--color-surface-tertiary)] disabled:cursor-not-allowed transition rounded-full hover:bg-[var(--color-surface-secondary)]"
-                        aria-label="Share Chat"
-                        title="Share Chat"
-                    >
-                        <ShareIcon className="w-6 h-6" />
-                    </button>
-                    <button
-                        onClick={handleExportPdf}
-                        disabled={messages.length <= 1 || isExporting}
-                        className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-accent-text)] disabled:text-[var(--color-surface-tertiary)] disabled:cursor-not-allowed transition rounded-full hover:bg-[var(--color-surface-secondary)]"
-                        aria-label="Export as PDF"
-                        title="Export as PDF"
-                    >
-                        {isExporting ? <Spinner /> : <PdfIcon className="w-6 h-6" />}
-                    </button>
-                </div>
-            </header>
-            <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.length <= 2 && (
-                    <div className="p-4 text-center border-b border-[var(--color-border)]">
+        <div className="flex flex-col h-full bg-transparent">
+            {/* Header */}
+            <header className="px-4 py-3 bg-[var(--color-surface-primary)]/80 backdrop-blur-md border-b border-[var(--color-border)] z-10">
+                <div className="max-w-4xl mx-auto w-full flex items-center justify-between">
+                    <div>
+                        <h2 className="text-lg font-bold text-[var(--color-text-primary)]">AI Companion</h2>
+                        <p className="text-xs text-[var(--color-text-secondary)]">Your friendly space to chat and unwind</p>
+                    </div>
+                    <div className="flex items-center gap-1">
                         <button
-                            onClick={handleCareerGuidanceClick}
-                            className="bg-[var(--color-surface-primary)] border border-[var(--color-border)] rounded-full px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)] hover:border-[var(--color-accent-text)] transition-all duration-200 shadow-sm"
+                            onClick={handleClearChat}
+                            disabled={messages.length <= 1 || isClearing}
+                            className="p-2 text-[var(--color-text-secondary)] hover:text-red-400 disabled:text-[var(--color-surface-tertiary)] disabled:cursor-not-allowed transition rounded-full hover:bg-red-500/10"
+                            aria-label="Clear Chat"
+                            title="Clear Chat History"
                         >
-                            🚀 Explore Career Paths
+                            {isClearing ? <Spinner className="w-5 h-5 !text-red-400" /> : <TrashIcon className="w-5 h-5" />}
+                        </button>
+                        <button
+                            onClick={handleShareChat}
+                            disabled={messages.length <= 1}
+                            className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-accent-text)] disabled:text-[var(--color-surface-tertiary)] disabled:cursor-not-allowed transition rounded-full hover:bg-[var(--color-surface-secondary)]"
+                            aria-label="Share Chat"
+                            title="Share Chat"
+                        >
+                            <ShareIcon className="w-5 h-5" />
+                        </button>
+                        <button
+                            onClick={handleExportPdf}
+                            disabled={messages.length <= 1 || isExporting}
+                            className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-accent-text)] disabled:text-[var(--color-surface-tertiary)] disabled:cursor-not-allowed transition rounded-full hover:bg-[var(--color-surface-secondary)]"
+                            aria-label="Export as PDF"
+                            title="Export as PDF"
+                        >
+                            {isExporting ? <Spinner /> : <PdfIcon className="w-5 h-5" />}
                         </button>
                     </div>
-                )}
-                {messages.map((msg, index) => (
-                    msg.role === 'user'
-                        ? <UserMessage key={index} text={msg.text} image={msg.image} />
-                        : <ModelMessage key={index} message={msg} />
-                ))}
-                {isTyping && <TypingIndicator />}
-                {chatError && (
-                    <div className="px-4 py-2">
-                        <div className="bg-[var(--color-danger-bg)] border border-[var(--color-danger-border)] text-[var(--color-danger-text)] p-3 rounded-md text-sm flex items-center justify-between">
-                            <span>{chatError}</span>
+                </div>
+            </header>
+
+            {/* Centered Scrollable Conversation Area */}
+            <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 sm:p-6">
+                <div className="max-w-4xl mx-auto w-full space-y-4">
+                    {messages.length <= 2 && (
+                        <div className="p-4 text-center border-b border-[var(--color-border)]/60">
                             <button
-                                onClick={handleRetrySendMessage}
-                                className="font-semibold bg-[var(--color-danger-text)]/10 hover:bg-[var(--color-danger-text)]/20 text-[var(--color-danger-text)] py-1 px-3 rounded-md transition-colors ml-4"
+                                onClick={handleCareerGuidanceClick}
+                                className="bg-[var(--color-surface-primary)] border border-[var(--color-border)] rounded-full px-4 py-2 text-xs sm:text-sm font-semibold text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)] hover:border-[var(--color-accent-text)] transition-all duration-200 shadow-sm"
                             >
-                                Retry
-                            </button>
-                        </div>
-                    </div>
-                )}
-                <div ref={chatEndRef} />
-            </div>
-            <div className="p-4 bg-[var(--color-surface-primary)]/80 backdrop-blur-sm border-t border-[var(--color-border)]">
-                <div className="relative">
-                    {previewUrl && (
-                        <div className="absolute bottom-full left-0 mb-2 p-2 bg-[var(--color-background-start)] rounded-lg border border-[var(--color-border)]">
-                            <img src={previewUrl} alt="Preview" className="h-24 w-auto rounded" />
-                            <button
-                                onClick={handleRemoveImage}
-                                className="absolute -top-2 -right-2 bg-[var(--color-surface-secondary)] rounded-full text-[var(--color-text-primary)] hover:bg-[var(--color-surface-tertiary)]"
-                            >
-                                <XCircleIcon className="w-6 h-6" />
+                                🚀 Explore Career Paths & Tech Roadmaps
                             </button>
                         </div>
                     )}
-                    <textarea
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                handleSendMessage();
-                            }
-                        }}
-                        placeholder="Type a message, use the mic, or add a photo..."
-                        className="w-full bg-[var(--color-surface-secondary)] border border-[var(--color-border)] rounded-md p-2 pr-36 text-[var(--color-text-primary)] resize-none focus:ring-2 focus:ring-[var(--color-accent-ring)] focus:border-[var(--color-accent-text)] transition"
-                        rows={2}
-                        disabled={isTyping || isRecording}
-                    />
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                        <button
-                            onClick={handleToggleRecording}
-                            disabled={isTyping}
-                            className={`p-2 transition rounded-full hover:bg-[var(--color-surface-tertiary)] ${isRecording ? 'text-red-500' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-accent-text)]'}`}
-                            aria-label={isRecording ? 'Stop recording' : 'Start recording'}
-                            title={isRecording ? 'Stop recording' : 'Start recording'}
-                        >
-                            {isRecording ? <StopCircleIcon className="w-6 h-6 animate-pulse" /> : <MicrophoneIcon className="w-6 h-6" />}
-                        </button>
-                        <input type="file" ref={fileInputRef} onChange={handleImageSelect} accept="image/*" className="hidden" />
-                        <button
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={isTyping || !!selectedImage || isRecording}
-                            className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-accent-text)] disabled:text-[var(--color-surface-tertiary)] disabled:cursor-not-allowed transition rounded-full hover:bg-[var(--color-surface-tertiary)]"
-                            aria-label="Attach image"
-                        >
-                            <PaperclipIcon className="w-6 h-6" />
-                        </button>
-                        <button
-                            onClick={handleSendMessage}
-                            disabled={(!input.trim() && !selectedImage) || isTyping || isRecording}
-                            className="bg-[var(--color-accent-bg)] hover:bg-[var(--color-accent-bg-hover)] disabled:bg-[var(--color-surface-tertiary)] text-[var(--color-text-on-accent)] font-bold p-2 rounded-md transition duration-200"
-                            aria-label="Send message"
-                        >
-                            <SendIcon className="w-6 h-6" />
-                        </button>
+                    {messages.map((msg, index) => (
+                        msg.role === 'user'
+                            ? <UserMessage key={index} text={msg.text} image={msg.image} />
+                            : <ModelMessage key={index} message={msg} />
+                    ))}
+                    {isTyping && (
+                        <div className="w-full max-w-full">
+                            <TypingIndicator />
+                        </div>
+                    )}
+                    {chatError && (
+                        <div className="py-2">
+                            <div className="bg-[var(--color-danger-bg)] border border-[var(--color-danger-border)] text-[var(--color-danger-text)] p-3 rounded-xl text-sm flex items-center justify-between">
+                                <span>{chatError}</span>
+                                <button
+                                    onClick={handleRetrySendMessage}
+                                    className="font-semibold bg-[var(--color-danger-text)]/10 hover:bg-[var(--color-danger-text)]/20 text-[var(--color-danger-text)] py-1 px-3 rounded-lg transition-colors ml-4"
+                                >
+                                    Retry
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                    <div ref={chatEndRef} />
+                </div>
+            </div>
+
+            {/* Centered ChatGPT-like Bottom Input Bar */}
+            <div className="p-4 bg-[var(--color-surface-primary)]/85 backdrop-blur-md border-t border-[var(--color-border)]">
+                <div className="max-w-4xl mx-auto w-full relative">
+                    {previewUrl && (
+                        <div className="absolute bottom-full left-0 mb-2 p-2 bg-[var(--color-background-start)] rounded-xl border border-[var(--color-border)] shadow-lg">
+                            <img src={previewUrl} alt="Preview" className="h-24 w-auto rounded-lg" />
+                            <button
+                                onClick={handleRemoveImage}
+                                className="absolute -top-2 -right-2 bg-[var(--color-surface-secondary)] rounded-full text-[var(--color-text-primary)] hover:bg-[var(--color-surface-tertiary)] shadow"
+                            >
+                                <XCircleIcon className="w-5 h-5" />
+                            </button>
+                        </div>
+                    )}
+                    <div className="relative rounded-2xl bg-[var(--color-surface-secondary)] border border-[var(--color-border)] focus-within:border-[var(--color-accent-text)] focus-within:ring-2 focus-within:ring-[var(--color-accent-ring)] transition shadow-inner">
+                        <textarea
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSendMessage();
+                                }
+                            }}
+                            placeholder="Type a message, ask for guidance, or explore career ideas..."
+                            className="w-full bg-transparent border-0 rounded-2xl p-3 sm:p-3.5 pr-36 text-sm sm:text-base text-[var(--color-text-primary)] placeholder-[var(--color-text-secondary)] resize-none focus:outline-none"
+                            rows={2}
+                            disabled={isTyping || isRecording}
+                        />
+                        <div className="absolute right-2.5 bottom-2.5 flex items-center gap-1.5">
+                            <button
+                                onClick={handleToggleRecording}
+                                disabled={isTyping}
+                                className={`p-2 transition rounded-xl hover:bg-[var(--color-surface-tertiary)] ${isRecording ? 'text-red-500' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-accent-text)]'}`}
+                                aria-label={isRecording ? 'Stop recording' : 'Start recording'}
+                                title={isRecording ? 'Stop recording' : 'Start voice typing'}
+                            >
+                                {isRecording ? <StopCircleIcon className="w-5 h-5 animate-pulse" /> : <MicrophoneIcon className="w-5 h-5" />}
+                            </button>
+                            <input type="file" ref={fileInputRef} onChange={handleImageSelect} accept="image/*" className="hidden" />
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={isTyping || !!selectedImage || isRecording}
+                                className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-accent-text)] disabled:text-[var(--color-surface-tertiary)] disabled:cursor-not-allowed transition rounded-xl hover:bg-[var(--color-surface-tertiary)]"
+                                aria-label="Attach image"
+                                title="Upload image or screenshot"
+                            >
+                                <PaperclipIcon className="w-5 h-5" />
+                            </button>
+                            <button
+                                onClick={handleSendMessage}
+                                disabled={(!input.trim() && !selectedImage) || isTyping || isRecording}
+                                className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 disabled:opacity-40 text-white font-bold p-2.5 rounded-xl shadow-md transition duration-200 active:scale-95"
+                                aria-label="Send message"
+                                title="Send"
+                            >
+                                <SendIcon className="w-4 h-4" />
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

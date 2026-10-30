@@ -711,137 +711,149 @@ const TutorChat: React.FC = () => {
 
     const renderChat = () => (
         <>
-            <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.map((msg, index) => {
-                    const deckForThisMsg = flashcardDecks.find(d => d.messageIndex === index);
-                    const isActiveDeck = activeDeckIndex === index;
-                    const isGeneratingForThis = generatingDeckForIndex === index;
-                    const hasEnoughText = msg.role === 'model' && msg.text && msg.text.split(' ').length > 20;
-                    return (
-                        <div key={index}>
-                            {msg.role === 'user'
-                                ? <UserMessage text={msg.text} image={msg.image} />
-                                : (
-                                    <div>
-                                        <ModelMessage message={msg} />
-                                        {/* Flashcard button below each AI response */}
-                                        {hasEnoughText && (
-                                            <div className="ml-1 mt-1.5 flex items-center gap-2">
-                                                <button
-                                                    onClick={() => handleGenerateFlashcards(index, msg.text)}
-                                                    disabled={isGeneratingForThis}
-                                                    className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-all ${
-                                                        deckForThisMsg
-                                                            ? 'border-[var(--color-accent-text)]/40 text-[var(--color-accent-text)] bg-[var(--color-accent-bg)]/10 hover:bg-[var(--color-accent-bg)]/20'
-                                                            : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-accent-text)] hover:border-[var(--color-accent-text)]/40'
-                                                    }`}
-                                                    title={deckForThisMsg ? 'Toggle flashcards' : 'Generate flashcards from this response'}
-                                                >
-                                                    {isGeneratingForThis ? <Spinner /> : '🃏'}
-                                                    {isGeneratingForThis ? 'Generating...' : deckForThisMsg ? (isActiveDeck ? 'Hide Flashcards' : `${deckForThisMsg.cards.length} Cards`) : 'Make Flashcards'}
-                                                </button>
-                                                {flashcardError && generatingDeckForIndex === null && index === messages.length - 1 && (
-                                                    <span className="text-[11px] text-red-400">{flashcardError}</span>
-                                                )}
-                                            </div>
-                                        )}
-                                        {/* Show flashcard panel inline */}
-                                        {deckForThisMsg && isActiveDeck && (
-                                            <div className="mt-2 ml-1 max-w-lg">
-                                                <FlashcardPanel
-                                                    deck={deckForThisMsg}
-                                                    onUpdateDeck={handleUpdateDeck}
-                                                    onClose={() => setActiveDeckIndex(null)}
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-                                )
-                            }
+            <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 sm:p-6">
+                <div className="max-w-4xl mx-auto w-full space-y-4">
+                    {messages.map((msg, index) => {
+                        const deckForThisMsg = flashcardDecks.find(d => d.messageIndex === index);
+                        const isActiveDeck = activeDeckIndex === index;
+                        const isGeneratingForThis = generatingDeckForIndex === index;
+                        const hasEnoughText = msg.role === 'model' && msg.text && msg.text.split(' ').length > 20;
+                        return (
+                            <div key={index}>
+                                {msg.role === 'user'
+                                    ? <UserMessage text={msg.text} image={msg.image} />
+                                    : (
+                                        <div>
+                                            <ModelMessage message={msg} />
+                                            {/* Flashcard button below each AI response */}
+                                            {hasEnoughText && (
+                                                <div className="ml-1 mt-1.5 flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => handleGenerateFlashcards(index, msg.text)}
+                                                        disabled={isGeneratingForThis}
+                                                        className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-all ${
+                                                            deckForThisMsg
+                                                                ? 'border-[var(--color-accent-text)]/40 text-[var(--color-accent-text)] bg-[var(--color-accent-bg)]/10 hover:bg-[var(--color-accent-bg)]/20'
+                                                                : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-accent-text)] hover:border-[var(--color-accent-text)]/40'
+                                                        }`}
+                                                        title={deckForThisMsg ? 'Toggle flashcards' : 'Generate flashcards from this response'}
+                                                    >
+                                                        {isGeneratingForThis ? <Spinner /> : '🃏'}
+                                                        {isGeneratingForThis ? 'Generating...' : deckForThisMsg ? (isActiveDeck ? 'Hide Flashcards' : `${deckForThisMsg.cards.length} Cards`) : 'Make Flashcards'}
+                                                    </button>
+                                                    {flashcardError && generatingDeckForIndex === null && index === messages.length - 1 && (
+                                                        <span className="text-[11px] text-red-400">{flashcardError}</span>
+                                                    )}
+                                                </div>
+                                            )}
+                                            {/* Show flashcard panel inline */}
+                                            {deckForThisMsg && isActiveDeck && (
+                                                <div className="mt-2 ml-1 w-full max-w-2xl">
+                                                    <FlashcardPanel
+                                                        deck={deckForThisMsg}
+                                                        onUpdateDeck={handleUpdateDeck}
+                                                        onClose={() => setActiveDeckIndex(null)}
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    )
+                                }
+                            </div>
+                        );
+                    })}
+                    {isTyping && (
+                        <div className="w-full max-w-full">
+                            <TypingIndicator />
                         </div>
-                    );
-                })}
-                {isTyping && <TypingIndicator />}
-                {chatError && (
-                    <div className="px-4 py-2">
-                        <div className="bg-[var(--color-danger-bg)] border border-[var(--color-danger-border)] text-[var(--color-danger-text)] p-3 rounded-md text-sm flex items-center justify-between">
-                            <span>{chatError}</span>
-                            <button
-                                onClick={handleRetrySendMessage}
-                                className="font-semibold bg-[var(--color-danger-text)]/10 hover:bg-[var(--color-danger-text)]/20 text-[var(--color-danger-text)] py-1 px-3 rounded-md transition-colors ml-4"
-                            >
-                                Retry
-                            </button>
+                    )}
+                    {chatError && (
+                        <div className="py-2">
+                            <div className="bg-[var(--color-danger-bg)] border border-[var(--color-danger-border)] text-[var(--color-danger-text)] p-3 rounded-xl text-sm flex items-center justify-between">
+                                <span>{chatError}</span>
+                                <button
+                                    onClick={handleRetrySendMessage}
+                                    className="font-semibold bg-[var(--color-danger-text)]/10 hover:bg-[var(--color-danger-text)]/20 text-[var(--color-danger-text)] py-1 px-3 rounded-lg transition-colors ml-4"
+                                >
+                                    Retry
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                )}
-                <div ref={chatEndRef} />
+                    )}
+                    <div ref={chatEndRef} />
+                </div>
             </div>
-            <div className="p-4 bg-[var(--color-surface-primary)]/80 backdrop-blur-sm border-t border-[var(--color-border)]">
-                <div className="relative">
+
+            {/* Centered ChatGPT-style Bottom Bar */}
+            <div className="p-4 bg-[var(--color-surface-primary)]/85 backdrop-blur-md border-t border-[var(--color-border)]">
+                <div className="max-w-4xl mx-auto w-full relative">
                     {previewUrl && (
-                        <div className="absolute bottom-full left-0 mb-2 p-2 bg-[var(--color-background-start)] rounded-lg border border-[var(--color-border)]">
-                            <img src={previewUrl} alt="Preview" className="h-24 w-auto rounded" />
+                        <div className="absolute bottom-full left-0 mb-2 p-2 bg-[var(--color-background-start)] rounded-xl border border-[var(--color-border)] shadow-lg">
+                            <img src={previewUrl} alt="Preview" className="h-24 w-auto rounded-lg" />
                             <button
                                 onClick={handleRemoveImage}
-                                className="absolute -top-2 -right-2 bg-[var(--color-surface-secondary)] rounded-full text-[var(--color-text-primary)] hover:bg-[var(--color-surface-tertiary)]"
+                                className="absolute -top-2 -right-2 bg-[var(--color-surface-secondary)] rounded-full text-[var(--color-text-primary)] hover:bg-[var(--color-surface-tertiary)] shadow"
                             >
-                                <XCircleIcon className="w-6 h-6" />
+                                <XCircleIcon className="w-5 h-5" />
                             </button>
                         </div>
                     )}
-                    <textarea
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                handleSendMessage();
-                            }
-                        }}
-                        placeholder="Ask a question, describe the image, or use the mic..."
-                        className="w-full bg-[var(--color-surface-secondary)] border border-[var(--color-border)] rounded-md p-2 pr-48 text-[var(--color-text-primary)] resize-none focus:ring-2 focus:ring-[var(--color-accent-ring)] focus:border-[var(--color-accent-text)] transition"
-                        rows={3}
-                        disabled={isTyping || isFormatting || isRecording}
-                    />
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                        {curriculum === 'Programming Help' && (
+                    <div className="relative rounded-2xl bg-[var(--color-surface-secondary)] border border-[var(--color-border)] focus-within:border-[var(--color-accent-text)] focus-within:ring-2 focus-within:ring-[var(--color-accent-ring)] transition shadow-inner">
+                        <textarea
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSendMessage();
+                                }
+                            }}
+                            placeholder="Ask a question, describe a formula or problem, or use the mic..."
+                            className="w-full bg-transparent border-0 rounded-2xl p-3 sm:p-3.5 pr-48 text-sm sm:text-base text-[var(--color-text-primary)] placeholder-[var(--color-text-secondary)] resize-none focus:outline-none"
+                            rows={2}
+                            disabled={isTyping || isFormatting || isRecording}
+                        />
+                        <div className="absolute right-2.5 bottom-2.5 flex items-center gap-1.5">
+                            {curriculum === 'Programming Help' && (
+                                <button
+                                    onClick={handleFormatCode}
+                                    disabled={!input.trim() || isFormatting || isTyping || isRecording}
+                                    className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-accent-text)] disabled:text-[var(--color-surface-tertiary)] disabled:cursor-not-allowed transition rounded-xl hover:bg-[var(--color-surface-tertiary)]"
+                                    aria-label="Format code"
+                                    title="Format Code"
+                                >
+                                    {isFormatting ? <Spinner /> : <CodeBracketIcon className="w-5 h-5" />}
+                                </button>
+                            )}
                             <button
-                                onClick={handleFormatCode}
-                                disabled={!input.trim() || isFormatting || isTyping || isRecording}
-                                className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-accent-text)] disabled:text-[var(--color-surface-tertiary)] disabled:cursor-not-allowed transition rounded-full hover:bg-[var(--color-surface-tertiary)]"
-                                aria-label="Format code"
-                                title="Format Code"
+                                onClick={handleToggleRecording}
+                                disabled={isTyping || isFormatting}
+                                className={`p-2 transition rounded-xl hover:bg-[var(--color-surface-tertiary)] ${isRecording ? 'text-red-500' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-accent-text)]'}`}
+                                aria-label={isRecording ? 'Stop recording' : 'Start recording'}
+                                title={isRecording ? 'Stop recording' : 'Start voice typing'}
                             >
-                                {isFormatting ? <Spinner /> : <CodeBracketIcon className="w-6 h-6" />}
+                                {isRecording ? <StopCircleIcon className="w-5 h-5 animate-pulse" /> : <MicrophoneIcon className="w-5 h-5" />}
                             </button>
-                        )}
-                        <button
-                            onClick={handleToggleRecording}
-                            disabled={isTyping || isFormatting}
-                            className={`p-2 transition rounded-full hover:bg-[var(--color-surface-tertiary)] ${isRecording ? 'text-red-500' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-accent-text)]'}`}
-                            aria-label={isRecording ? 'Stop recording' : 'Start recording'}
-                            title={isRecording ? 'Stop recording' : 'Start recording'}
-                        >
-                            {isRecording ? <StopCircleIcon className="w-6 h-6 animate-pulse" /> : <MicrophoneIcon className="w-6 h-6" />}
-                        </button>
-                        <input type="file" ref={fileInputRef} onChange={handleImageSelect} accept="image/*" className="hidden" />
-                        <button
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={isTyping || isFormatting || !!selectedImage || isRecording}
-                            className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-accent-text)] disabled:text-[var(--color-surface-tertiary)] disabled:cursor-not-allowed transition rounded-full hover:bg-[var(--color-surface-tertiary)]"
-                            aria-label="Attach image"
-                        >
-                            <PaperclipIcon className="w-6 h-6" />
-                        </button>
-                        <button
-                            onClick={handleSendMessage}
-                            disabled={(!input.trim() && !selectedImage) || isTyping || isFormatting || isRecording}
-                            className="bg-[var(--color-accent-bg)] hover:bg-[var(--color-accent-bg-hover)] disabled:bg-[var(--color-surface-tertiary)] text-[var(--color-text-on-accent)] font-bold p-2 rounded-md transition duration-200"
-                            aria-label="Send message"
-                        >
-                            <SendIcon className="w-6 h-6" />
-                        </button>
+                            <input type="file" ref={fileInputRef} onChange={handleImageSelect} accept="image/*" className="hidden" />
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={isTyping || isFormatting || !!selectedImage || isRecording}
+                                className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-accent-text)] disabled:text-[var(--color-surface-tertiary)] disabled:cursor-not-allowed transition rounded-xl hover:bg-[var(--color-surface-tertiary)]"
+                                aria-label="Attach image"
+                                title="Attach photo or question"
+                            >
+                                <PaperclipIcon className="w-5 h-5" />
+                            </button>
+                            <button
+                                onClick={handleSendMessage}
+                                disabled={(!input.trim() && !selectedImage) || isTyping || isFormatting || isRecording}
+                                className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 disabled:opacity-40 text-white font-bold p-2.5 rounded-xl shadow-md transition duration-200 active:scale-95"
+                                aria-label="Send message"
+                                title="Send"
+                            >
+                                <SendIcon className="w-4 h-4" />
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -849,69 +861,73 @@ const TutorChat: React.FC = () => {
     );
 
     return (
-        <div className="flex flex-col h-full">
-            <header className="p-4 bg-[var(--color-surface-primary)]/80 backdrop-blur-sm border-b border-[var(--color-border)] flex items-center justify-between">
-                <div>
-                    <h2 className="text-lg font-bold text-[var(--color-text-primary)]">AI Tutor: {subject} ({curriculum})</h2>
-                    <div className="flex items-center gap-4">
-                        <button
-                            onClick={handleNewChat}
-                            className="text-sm text-[var(--color-accent-text)] hover:underline"
-                        >
-                            Start New Chat
-                        </button>
-                        <button
-                            onClick={handleChangeTopic}
-                            className="text-sm text-[var(--color-accent-text)] hover:underline"
-                        >
-                            Change Topic
-                        </button>
+        <div className="flex flex-col h-full bg-transparent">
+            <header className="px-4 py-3 bg-[var(--color-surface-primary)]/80 backdrop-blur-md border-b border-[var(--color-border)] z-10">
+                <div className="max-w-4xl mx-auto w-full flex items-center justify-between">
+                    <div>
+                        <h2 className="text-base sm:text-lg font-bold text-[var(--color-text-primary)]">AI Tutor: {subject} ({curriculum})</h2>
+                        <div className="flex items-center gap-3 mt-0.5">
+                            <button
+                                onClick={handleNewChat}
+                                className="text-xs text-[var(--color-accent-text)] hover:underline font-semibold"
+                            >
+                                Start New Chat
+                            </button>
+                            <span className="text-xs text-[var(--color-border)]">•</span>
+                            <button
+                                onClick={handleChangeTopic}
+                                className="text-xs text-[var(--color-accent-text)] hover:underline font-semibold"
+                            >
+                                Change Topic
+                            </button>
+                            <span className="text-xs text-[var(--color-border)]">•</span>
+                            <button
+                                onClick={handleClearChat}
+                                disabled={messages.length <= 1}
+                                className="text-xs text-red-400 hover:text-red-300 hover:underline disabled:opacity-40 font-semibold"
+                            >
+                                Clear Chat
+                            </button>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-1">
                         <button
                             onClick={handleClearChat}
                             disabled={messages.length <= 1}
-                            className="text-sm text-red-400 hover:text-red-300 hover:underline disabled:opacity-40"
+                            className="p-2 text-[var(--color-text-secondary)] hover:text-red-400 disabled:text-[var(--color-surface-tertiary)] disabled:cursor-not-allowed transition rounded-full hover:bg-red-500/10"
+                            aria-label="Clear Chat"
+                            title="Clear Chat History"
                         >
-                            Clear Chat
+                            <TrashIcon className="w-5 h-5" />
+                        </button>
+                        <button
+                            onClick={handleGenerateQuiz}
+                            disabled={isGeneratingQuiz || !!quiz}
+                            className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-accent-text)] disabled:text-[var(--color-surface-tertiary)] disabled:cursor-not-allowed transition rounded-full hover:bg-[var(--color-surface-secondary)]"
+                            aria-label="Generate Quiz"
+                            title="Generate Quiz from this session"
+                        >
+                            <QuizIcon className="w-5 h-5" />
+                        </button>
+                        <button
+                            onClick={handleShareChat}
+                            disabled={messages.length <= 1}
+                            className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-accent-text)] disabled:text-[var(--color-surface-tertiary)] disabled:cursor-not-allowed transition rounded-full hover:bg-[var(--color-surface-secondary)]"
+                            aria-label="Share Chat"
+                            title="Share Chat"
+                        >
+                            <ShareIcon className="w-5 h-5" />
+                        </button>
+                        <button
+                            onClick={handleExportPdf}
+                            disabled={messages.length <= 1 || isExporting}
+                            className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-accent-text)] disabled:text-[var(--color-surface-tertiary)] disabled:cursor-not-allowed transition rounded-full hover:bg-[var(--color-surface-secondary)]"
+                            aria-label="Export as PDF"
+                            title="Export as PDF"
+                        >
+                            {isExporting ? <Spinner /> : <PdfIcon className="w-5 h-5" />}
                         </button>
                     </div>
-                </div>
-                <div className="flex items-center gap-1">
-                    <button
-                        onClick={handleClearChat}
-                        disabled={messages.length <= 1}
-                        className="p-2 text-[var(--color-text-secondary)] hover:text-red-400 disabled:text-[var(--color-surface-tertiary)] disabled:cursor-not-allowed transition rounded-full hover:bg-red-500/10"
-                        aria-label="Clear Chat"
-                        title="Clear Chat History"
-                    >
-                        <TrashIcon className="w-5 h-5" />
-                    </button>
-                    <button
-                        onClick={handleGenerateQuiz}
-                        disabled={isGeneratingQuiz || !!quiz}
-                        className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-accent-text)] disabled:text-[var(--color-surface-tertiary)] disabled:cursor-not-allowed transition rounded-full hover:bg-[var(--color-surface-secondary)]"
-                        aria-label="Generate Quiz"
-                        title="Generate Quiz"
-                    >
-                        <QuizIcon className="w-6 h-6" />
-                    </button>
-                    <button
-                        onClick={handleShareChat}
-                        disabled={messages.length <= 1}
-                        className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-accent-text)] disabled:text-[var(--color-surface-tertiary)] disabled:cursor-not-allowed transition rounded-full hover:bg-[var(--color-surface-secondary)]"
-                        aria-label="Share Chat"
-                        title="Share Chat"
-                    >
-                        <ShareIcon className="w-6 h-6" />
-                    </button>
-                    <button
-                        onClick={handleExportPdf}
-                        disabled={messages.length <= 1 || isExporting}
-                        className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-accent-text)] disabled:text-[var(--color-surface-tertiary)] disabled:cursor-not-allowed transition rounded-full hover:bg-[var(--color-surface-secondary)]"
-                        aria-label="Export as PDF"
-                        title="Export as PDF"
-                    >
-                        {isExporting ? <Spinner /> : <PdfIcon className="w-6 h-6" />}
-                    </button>
                 </div>
             </header>
             {isGeneratingQuiz || quiz ? renderQuiz() : renderChat()}
