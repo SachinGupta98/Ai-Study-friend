@@ -17,14 +17,22 @@ type AuthMode = 'login' | 'signup' | 'forgot';
 
 interface AuthProps {
   onAuthSuccess: (username: string) => void;
+  initialMode?: AuthMode;
+  onClose?: () => void;
 }
 
-const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
-  const [mode, setMode] = useState<AuthMode>('login');
+const Auth: React.FC<AuthProps> = ({ onAuthSuccess, initialMode = 'login', onClose }) => {
+  const [mode, setMode] = useState<AuthMode>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
+
+  React.useEffect(() => {
+    if (initialMode) {
+      setMode(initialMode);
+    }
+  }, [initialMode]);
 
   // ── Email / Password ─────────────────────────────────────────────────────────
 
@@ -168,16 +176,26 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
   // ── Render: Login / Signup Mode ───────────────────────────────────────────────
 
   return (
-    <div className="p-4 md:p-6">
-      <div className="bg-[var(--color-surface-primary)] border border-[var(--color-border)] rounded-xl p-6 space-y-5 shadow-lg">
+    <div className="p-2 sm:p-4 md:p-6 w-full max-w-md mx-auto">
+      <div className="bg-[var(--color-surface-primary)] border border-[var(--color-border)] rounded-2xl p-6 md:p-8 space-y-5 shadow-2xl relative">
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] hover:text-white flex items-center justify-center transition"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        )}
 
         {/* Title */}
         <div className="text-center space-y-1">
-          <h2 className="text-xl font-bold text-[var(--color-text-primary)]">
-            {mode === 'login' ? 'Welcome Back' : 'Create Account'}
+          <h2 className="text-xl md:text-2xl font-black text-[var(--color-text-primary)]">
+            {mode === 'login' ? 'Welcome Back' : 'Create Free Account'}
           </h2>
-          <p className="text-sm text-[var(--color-text-secondary)]">
-            {mode === 'login' ? 'Sign in to continue learning' : 'Start your learning journey'}
+          <p className="text-xs md:text-sm text-[var(--color-text-secondary)]">
+            {mode === 'login' ? 'Sign in to continue your streak & study plans' : 'Join thousands of students studying with AI'}
           </p>
         </div>
 

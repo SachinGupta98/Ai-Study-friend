@@ -82,7 +82,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 def verify_supabase_token(token: str) -> dict:
     """
     Decode and verify a Supabase-issued JWT.
-    Supports ES256, RS256 (via public JWKS) and HS256 (via SUPABASE_JWT_SECRET).
+    Supports ES256, RS256 (via public JWKS) and HS256/symmetric (via SUPABASE_JWT_SECRET or SECRET_KEY).
     """
     try:
         header = pyjwt.get_unverified_header(token)
@@ -95,37 +95,28 @@ def verify_supabase_token(token: str) -> dict:
         )
 
     try:
-        if alg in ["ES256", "RS256"]:
+        if alg in ["ES256", "RS256", "EdDSA"]:
             # Verified with public key from Supabase JWKS
             signing_key = jwks_client.get_signing_key_from_jwt(token)
             payload = pyjwt.decode(
                 token,
                 signing_key.key,
-                algorithms=["ES256", "RS256"],
-                options={"verify_aud": False},
-            )
-            return payload
-        elif alg == "HS256":
-            # Verified with symmetric secret
-            if not SUPABASE_JWT_SECRET:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="SUPABASE_JWT_SECRET is not configured on the server.",
-                )
-            payload = pyjwt.decode(
-                token,
-                SUPABASE_JWT_SECRET,
-                algorithms=["HS256"],
+                algorithms=[alg, "ES256", "RS256", "EdDSA"],
                 options={"verify_aud": False},
             )
             return payload
         else:
-            # Fallback for any other algorithm
-            signing_key = jwks_client.get_signing_key_from_jwt(token)
+            # Symmetric secret fallback (HS256, HS384, HS512, etc.)
+            secret = SUPABASE_JWT_SECRET or SECRET_KEY
+            if not secret:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="JWT secret is not configured on the server.",
+                )
             payload = pyjwt.decode(
                 token,
-                signing_key.key,
-                algorithms=[alg],
+                secret,
+                algorithms=[alg, "HS256", "HS384", "HS512"],
                 options={"verify_aud": False},
             )
             return payload

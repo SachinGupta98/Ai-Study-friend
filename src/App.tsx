@@ -6,6 +6,7 @@ import GeneralChat from './components/GeneralChat';
 import Dashboard from './components/Dashboard';
 import DocumentChat from './components/DocumentChat';
 import Auth from './components/Auth';
+import LandingPage from './components/LandingPage';
 import PomodoroWidget from './components/PomodoroWidget';
 import { BookOpenIcon } from './components/icons/BookOpenIcon';
 import { ChatBubbleIcon } from './components/icons/ChatBubbleIcon';
@@ -80,15 +81,8 @@ const AppContent: React.FC = () => {
 
   if (!currentUser) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen text-[var(--color-text-primary)] relative overflow-hidden">
-        {/* Modern glowing background orbs */}
-        <div className="absolute top-1/4 -left-20 w-80 h-80 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="w-full max-w-md mx-auto relative z-10 p-4">
-          <Header />
-          <Auth onAuthSuccess={handleLogin} />
-        </div>
+      <>
+        <LandingPage onAuthSuccess={handleLogin} />
         <Toaster
           position="bottom-center"
           toastOptions={{
@@ -99,7 +93,7 @@ const AppContent: React.FC = () => {
             },
           }}
         />
-      </div>
+      </>
     );
   }
 
