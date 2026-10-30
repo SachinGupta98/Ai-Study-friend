@@ -4,6 +4,8 @@ import { DownloadIcon } from './icons/DownloadIcon';
 import { SunIcon } from './icons/SunIcon';
 import { MoonIcon } from './icons/MoonIcon';
 import { usePomodoro, PHASE_CONFIG } from '../contexts/PomodoroContext';
+import { useAuth } from '../contexts/AuthContext';
+import StudentProfileModal from './StudentProfileModal';
 
 type Theme = 'light' | 'dark';
 
@@ -15,7 +17,12 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ username, onLogout, onInstallClick }) => {
   const { formatTime, timeLeft, isRunning, phase, togglePanel, currentSoundscape } = usePomodoro();
+  const { profile } = useAuth();
   const currentConfig = PHASE_CONFIG[phase];
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  // Prefer student's real name from profile or username
+  const displayName = profile?.fullName || username || 'Student';
 
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof localStorage !== 'undefined' && localStorage.getItem('theme')) {
@@ -103,15 +110,24 @@ const Header: React.FC<HeaderProps> = ({ username, onLogout, onInstallClick }) =
               </span>
             </button>
 
-            {/* User Pill */}
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--color-surface-secondary)]/80 border border-[var(--color-border)] shadow-sm">
-              <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 text-white text-[10px] font-black flex items-center justify-center shadow-inner">
-                {getInitials(username)}
+            {/* Student Profile Pill — Clickable to view & edit academic profile */}
+            <button
+              onClick={() => setIsProfileOpen(true)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--color-surface-secondary)]/90 hover:bg-[var(--color-surface-tertiary)] border border-[var(--color-border)] hover:border-cyan-500/50 transition duration-200 shadow-sm cursor-pointer group"
+              title="Click to view & edit your student academic profile"
+            >
+              <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 text-white text-[10px] font-black flex items-center justify-center shadow-inner flex-shrink-0">
+                {getInitials(displayName)}
               </div>
-              <span className="text-xs font-semibold text-[var(--color-text-primary)] truncate max-w-[120px]">
-                {username}
-              </span>
-            </div>
+              <div className="text-left hidden sm:block">
+                <span className="text-xs font-bold text-[var(--color-text-primary)] block truncate max-w-[130px] leading-tight">
+                  {displayName}
+                </span>
+                <span className="text-[9px] font-semibold text-cyan-400 block leading-tight">
+                  {profile?.studentClass || 'Class 10th'}
+                </span>
+              </div>
+            </button>
 
             {/* Theme Toggle */}
             <button
@@ -147,6 +163,12 @@ const Header: React.FC<HeaderProps> = ({ username, onLogout, onInstallClick }) =
           </div>
         )}
       </div>
+
+      {/* Student Profile Modal */}
+      <StudentProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+      />
     </header>
   );
 };

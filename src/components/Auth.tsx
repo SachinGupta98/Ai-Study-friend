@@ -23,6 +23,8 @@ interface AuthProps {
 
 const Auth: React.FC<AuthProps> = ({ onAuthSuccess, initialMode = 'login', onClose }) => {
   const [mode, setMode] = useState<AuthMode>(initialMode);
+  const [fullName, setFullName] = useState('');
+  const [studentClass, setStudentClass] = useState('Class 10th');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -43,21 +45,38 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, initialMode = 'login', onClo
 
     try {
       if (mode === 'signup') {
-        const { data, error } = await supabase.auth.signUp({ email, password });
+        if (!fullName.trim()) {
+          toast.error('Please enter your full name');
+          setIsLoading(false);
+          return;
+        }
+
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: fullName.trim(),
+              name: fullName.trim(),
+              student_class: studentClass,
+            },
+          },
+        });
         if (error) throw error;
         if (data.user && !data.session) {
           // Email confirmation required (Supabase default)
           toast.success('Check your email to confirm your account!', { duration: 6000 });
         } else if (data.session) {
           // Auto-confirmed (e.g. when email confirmation is disabled in Supabase)
-          onAuthSuccess(data.user?.email ?? 'User');
-          toast.success('Account created! Welcome aboard 🎉');
+          onAuthSuccess(fullName.trim());
+          toast.success(`Welcome to Vidya AI, ${fullName.trim()}! 🎉`);
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        onAuthSuccess(data.user?.email ?? 'User');
-        toast.success('Logged in successfully!');
+        const displayName = data.user?.user_metadata?.full_name || data.user?.user_metadata?.name || data.user?.email?.split('@')[0] || 'Student';
+        onAuthSuccess(displayName);
+        toast.success(`Welcome back, ${displayName}!`);
       }
     } catch (err: any) {
       toast.error(err.message ?? 'Something went wrong');
@@ -226,6 +245,47 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess, initialMode = 'login', onClo
 
         {/* Email / Password Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
+          {mode === 'signup' && (
+            <>
+              <div>
+                <label htmlFor="auth-fullname" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
+                  Full Name <span className="text-red-400">*</span>
+                </label>
+                <input
+                  id="auth-fullname"
+                  type="text"
+                  value={fullName}
+                  onChange={e => setFullName(e.target.value)}
+                  required
+                  placeholder="e.g. Sachin Gupta"
+                  autoComplete="name"
+                  className="w-full bg-[var(--color-surface-secondary)] border border-[var(--color-border)] rounded-lg p-2.5 text-[var(--color-text-primary)] placeholder:text-[var(--color-text-secondary)]/50 focus:ring-2 focus:ring-[var(--color-accent-ring)] focus:border-[var(--color-accent-text)] transition"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="auth-class" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
+                  Class / Academic Level
+                </label>
+                <select
+                  id="auth-class"
+                  value={studentClass}
+                  onChange={e => setStudentClass(e.target.value)}
+                  className="w-full bg-[var(--color-surface-secondary)] border border-[var(--color-border)] rounded-lg p-2.5 text-[var(--color-text-primary)] focus:ring-2 focus:ring-[var(--color-accent-ring)] focus:border-[var(--color-accent-text)] transition"
+                >
+                  <option value="Class 8th">Class 8th (Foundation)</option>
+                  <option value="Class 9th">Class 9th (NCF-SE)</option>
+                  <option value="Class 10th">Class 10th (CBSE / Boards)</option>
+                  <option value="Class 11th">Class 11th (Science / Commerce)</option>
+                  <option value="Class 12th">Class 12th (Boards Prep)</option>
+                  <option value="JEE Aspirant">JEE Main & Advanced Aspirant</option>
+                  <option value="NEET Aspirant">NEET Medical Aspirant</option>
+                  <option value="B.Tech / College">B.Tech / College Student</option>
+                </select>
+              </div>
+            </>
+          )}
+
           <div>
             <label htmlFor="auth-email" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
               Email address

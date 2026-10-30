@@ -31,6 +31,7 @@ import { SearchIcon } from './icons/SearchIcon';
 import { SortAscendingIcon } from './icons/SortAscendingIcon';
 import { SortDescendingIcon } from './icons/SortDescendingIcon';
 import { usePomodoro } from '../contexts/PomodoroContext';
+import { useAuth } from '../contexts/AuthContext';
 
 // --- Re-usable History Item Components ---
 
@@ -335,6 +336,7 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     const { togglePanel } = usePomodoro();
+    const { profile } = useAuth();
 
     const [stats, setStats] = useState<UserStats | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -539,9 +541,20 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                             <span>{getRankTitle(level)}</span>
                         </div>
                         <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
-                            Welcome to Your Command Center
+                            Welcome, {profile?.fullName || 'Student'}! 👋
                         </h1>
-                        <p className="text-xs md:text-sm text-slate-300 max-w-xl">
+                        <div className="flex flex-wrap items-center gap-2 pt-0.5 text-xs text-slate-300">
+                            <span className="px-2.5 py-0.5 rounded-md bg-white/10 border border-white/15 text-cyan-300 font-semibold">
+                                🎓 {profile?.studentClass || 'Class 10th'}
+                            </span>
+                            <span className="px-2.5 py-0.5 rounded-md bg-white/10 border border-white/15 text-slate-300">
+                                🔬 {profile?.stream || 'Science'}
+                            </span>
+                            <span className="px-2.5 py-0.5 rounded-md bg-white/10 border border-white/15 text-slate-300">
+                                🏛️ {profile?.board || 'CBSE 2026–27'}
+                            </span>
+                        </div>
+                        <p className="text-xs md:text-sm text-slate-300 max-w-xl mt-1">
                             Track your academic momentum, review AI roadmaps, and maintain daily learning streaks.
                         </p>
 
