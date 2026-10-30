@@ -1,5 +1,6 @@
 // Note: Powered by Groq API with robust model fallback support
 import { Curriculum, Task, ChatMessage, WeeklyPlan, Quiz, StudyPlan } from '../types';
+import { getOfficialSyllabusPromptSnippet } from '../data/syllabus2026_27';
 
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
@@ -102,13 +103,25 @@ const makeGroqRequest = async (payload: any) => {
 };
 
 export const generateStudyPlan = async (curriculum: Curriculum, subject: string, goal: string, duration: string): Promise<any> => {
+    const syllabusSnippet = getOfficialSyllabusPromptSnippet(curriculum, subject);
+
     const prompt = `
-        You are an expert academic planner. Create a detailed, week-by-week plan based on the user's request.
-        Category: ${curriculum}
-        Topic: ${subject}
+        You are an expert academic planner for Session 2026–27. Create a structured, week-by-week study plan based on the student's request.
+        Category / Class: ${curriculum}
+        Subject: ${subject}
         User's Goal: "${goal}"
         Desired Duration: ${duration}
-        Generate a comprehensive plan that breaks down the learning goal into manageable weekly and daily tasks. Ensure output is STRICTLY valid JSON returning exactly this structure:
+
+        ${syllabusSnippet}
+
+        CRITICAL SYLLABUS COMPLIANCE INSTRUCTIONS:
+        1. If official syllabus chapters are provided above for ${curriculum} ${subject}, you MUST STRICTLY use these exact chapter numbers, titles, and sub-topics for every week and daily task.
+        2. Do NOT invent, assume, or pull outdated or deleted chapters from legacy syllabi.
+        3. Break down the prescribed 2026-27 syllabus chapters and topics into a logical progression that fits the requested duration (${duration}).
+        4. Every week must have a clear "topic_focus" naming the exact chapter or module from the 2026-27 syllabus.
+        5. Provide specific, actionable daily tasks (e.g. "Understand Fundamental Theorem of Arithmetic & practice proof", "Solve NCERT exercise questions on irrationality").
+
+        Generate a comprehensive plan returning STRICTLY valid JSON with this exact structure:
         {
           "plan_title": "String",
           "duration_weeks": Number,
@@ -202,14 +215,18 @@ const transformHistory = (history: ChatMessage[]) => history.map(msg => ({
     content: msg.text
 }));
 
-const getTutorSystemInstruction = (curriculum: Curriculum, subject: string) => `
-You are 'Vidya AI', a world-class, engaging, and patient academic tutor dedicated to helping students master concepts for ${curriculum} (${subject}).
+const getTutorSystemInstruction = (curriculum: Curriculum, subject: string) => {
+    const syllabusSnippet = getOfficialSyllabusPromptSnippet(curriculum, subject);
+    return `
+You are 'Vidya AI', a world-class, engaging, and patient academic tutor dedicated to helping students master concepts for ${curriculum} (${subject}) for academic Session 2026–27.
+
+${syllabusSnippet}
 
 CRITICAL FORMATTING & PRESENTATION RULES:
 1. 🎨 Visual Structure & Emojis:
    - Use meaningful emojis and markdown headers to organize answers into clear, beautifully digestible textbook sections.
    - Standard structure for conceptual answers and doubts:
-     • 📌 **Concept Overview**: Clear, concise definition of the topic.
+     • 📌 **Concept Overview**: Clear, concise definition of the topic strictly matching 2026-27 NCERT/CBSE/State Board curriculum.
      • 💡 **Intuitive Analogy**: A relatable real-world visualization.
      • 📐 **Formulas & Key Principles**: Exact equations with variable definitions.
      • 📝 **Step-by-Step Textbook Solution / Derivation**: Numbered steps explaining the *why* behind every transition.
@@ -222,12 +239,13 @@ CRITICAL FORMATTING & PRESENTATION RULES:
    - Use single dollar signs \`$...$\` for inline math (e.g., $E = mc^2$, $x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$).
    - Use double dollar signs \`$$...$$\` on isolated lines for display / block math equations and derivations:
      $$ \\int_{a}^{b} f(x)\\,dx = F(b) - F(a) $$
-   - Write out complete steps clearly, just like in standard textbooks (NCERT, Hall & Knight, Irodov, Campbell Biology).
+   - Write out complete steps clearly, just like in standard 2026-27 textbooks (NCERT, Hall & Knight, Irodov, Campbell Biology).
    - Use proper LaTeX syntax: fractions (\\frac{a}{b}), square roots (\\sqrt{x}), powers (x^2), subscripts (a_n), vectors (\\vec{v}), and Greek letters (\\alpha, \\beta, \\theta, \\lambda, \\Delta).
 
 3. 🎓 Tone & Encouragement:
    - Warm, inspiring, and rigorous. Keep the student excited to learn!
 `;
+};
 
 export const getTutorResponseStream = async function* (
     curriculum: Curriculum,
@@ -427,7 +445,10 @@ export const adaptStudyPlan = async (weekPlan: WeeklyPlan, subject: string): Pro
 };
 
 export const generateQuiz = async (curriculum: Curriculum, subject: string): Promise<Quiz> => {
-    const prompt = `Generate a 5-question multiple-choice quiz on ${curriculum} - ${subject}. Return STRICT JSON conforming exactly to this structure:
+    const syllabusSnippet = getOfficialSyllabusPromptSnippet(curriculum, subject);
+    const prompt = `Generate a high-yield, 5-question multiple-choice quiz on ${curriculum} - ${subject}.
+    ${syllabusSnippet}
+    Ensure questions strictly test the official Session 2026-27 syllabus topics. Return STRICT JSON conforming exactly to this structure:
     {
       "questions": [
         {

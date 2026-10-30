@@ -1,7 +1,8 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { generateStudyPlan } from '../services/geminiService';
 import { saveStudyPlan } from '../services/authService';
+import { getOfficialSyllabus } from '../data/syllabus2026_27';
 // FIX: Imported the `WeeklyPlan` type from `../types` to resolve the "Cannot find name 'WeeklyPlan'" error.
 import { Curriculum, StudyPlan, WeeklyPlan, Task } from '../types';
 import TopicSelector from './TopicSelector';
@@ -118,6 +119,11 @@ const StudyPlanner: React.FC = () => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [isPlanSaved, setIsPlanSaved] = useState<boolean>(false);
+    const [showAllChapters, setShowAllChapters] = useState<boolean>(false);
+
+    const officialSyllabus = useMemo(() => {
+        return getOfficialSyllabus(curriculum, subject);
+    }, [curriculum, subject]);
 
     const handleGeneratePlan = useCallback(async () => {
         setIsLoading(true);
@@ -290,6 +296,62 @@ const StudyPlanner: React.FC = () => {
                     setSubject={setSubject}
                     disabled={isLoading}
                 />
+
+                {/* 🌟 2026–27 Verified Syllabus Banner & Quick Chapter Selection */}
+                {officialSyllabus && (
+                    <div className="p-4 rounded-2xl bg-cyan-950/30 border border-cyan-500/30 space-y-3 shadow-inner">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                                <span className="flex h-2.5 w-2.5 relative">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                                </span>
+                                <span className="font-bold text-xs md:text-sm text-cyan-300">
+                                    Session 2026–27 Syllabus Synced ({officialSyllabus.chapters.length} Official Chapters)
+                                </span>
+                                {officialSyllabus.code && (
+                                    <span className="px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-200 text-[10px] font-mono font-bold">
+                                        Code: {officialSyllabus.code}
+                                    </span>
+                                )}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowAllChapters(!showAllChapters)}
+                                className="text-xs text-cyan-400 hover:text-cyan-200 font-bold underline underline-offset-4 transition self-start sm:self-auto"
+                            >
+                                {showAllChapters ? '▲ Collapse Chapter List' : `▼ Browse All ${officialSyllabus.chapters.length} Chapters`}
+                            </button>
+                        </div>
+
+                        {/* Quick Selection Chapter Chips */}
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                            <span className="text-[11px] font-semibold text-slate-400 mr-1">
+                                📌 Quick Target:
+                            </span>
+                            {(showAllChapters ? officialSyllabus.chapters : officialSyllabus.chapters.slice(0, 7)).map((ch, idx) => (
+                                <button
+                                    key={idx}
+                                    type="button"
+                                    onClick={() => setGoal(`Master ${typeof ch.number === 'number' ? `Chapter ${ch.number}: ` : ''}${ch.name}`)}
+                                    className="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-cyan-500/20 border border-slate-700 hover:border-cyan-400 text-slate-300 hover:text-cyan-200 text-xs font-medium transition active:scale-95"
+                                    title={`Topics: ${ch.topics.slice(0, 3).join(', ')}...`}
+                                >
+                                    {typeof ch.number === 'number' ? `Ch ${ch.number}: ` : ''}{ch.name}
+                                </button>
+                            ))}
+                            {!showAllChapters && officialSyllabus.chapters.length > 7 && (
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAllChapters(true)}
+                                    className="px-2.5 py-1 rounded-lg bg-slate-800/60 hover:bg-slate-700/60 text-cyan-400 text-xs font-semibold"
+                                >
+                                    +{officialSyllabus.chapters.length - 7} more...
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                )}
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
