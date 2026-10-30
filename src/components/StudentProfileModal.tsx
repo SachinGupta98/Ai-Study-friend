@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth, StudentProfile } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import Spinner from './Spinner';
 import toast from 'react-hot-toast';
 
@@ -104,51 +104,52 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ isOpen
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in">
-        {/* Backdrop click */}
-        <div className="fixed inset-0" onClick={onClose} />
+      <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-md p-3 sm:p-6 flex items-start sm:items-center justify-center pt-16 sm:pt-14 pb-10 animate-fade-in">
+        {/* Backdrop click dismiss */}
+        <div className="fixed inset-0 -z-10" onClick={onClose} />
 
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
           transition={{ duration: 0.2 }}
-          className="relative z-10 w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl bg-[var(--color-surface-primary)] border border-[var(--color-border)] shadow-2xl p-6 sm:p-7 text-[var(--color-text-primary)]"
+          className="relative z-10 w-full max-w-xl max-h-[85dvh] flex flex-col rounded-3xl bg-[var(--color-surface-primary)] border border-[var(--color-border)] shadow-2xl text-[var(--color-text-primary)] overflow-hidden"
         >
-          {/* Glowing Top Ambient Pill */}
+          {/* Ambient Glow */}
           <div className="absolute -top-16 -right-16 w-40 h-40 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
 
-          {/* Modal Header */}
-          <div className="flex items-start justify-between pb-4 border-b border-[var(--color-border)]">
+          {/* Sticky Modal Top Header — ALWAYS 100% VISIBLE & NEVER CLIPPED */}
+          <div className="p-4 sm:p-6 pb-4 border-b border-[var(--color-border)] bg-[var(--color-surface-primary)]/95 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-cyan-500 via-sky-500 to-indigo-600 text-white font-black text-lg sm:text-xl flex items-center justify-center shadow-lg border-2 border-white/20">
+              <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-gradient-to-tr from-cyan-500 via-sky-500 to-indigo-600 text-white font-black text-base sm:text-lg flex items-center justify-center shadow-lg border-2 border-white/20 flex-shrink-0">
                 {getInitials(fullName || profile?.email || 'Student')}
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-lg sm:text-xl font-black text-[var(--color-text-primary)]">
+                  <h3 className="text-base sm:text-lg font-black text-[var(--color-text-primary)] truncate max-w-[200px] sm:max-w-xs">
                     {fullName || 'Student Profile'}
                   </h3>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-cyan-500/15 text-cyan-400 border border-cyan-500/30">
                     PRO
                   </span>
                 </div>
-                <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
+                <p className="text-[11px] text-[var(--color-text-secondary)] truncate max-w-[220px] sm:max-w-sm mt-0.5">
                   {profile?.email || 'Logged in student'}
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-full bg-[var(--color-surface-secondary)] hover:bg-[var(--color-surface-tertiary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] flex items-center justify-center transition"
+              className="w-8 h-8 rounded-full bg-[var(--color-surface-secondary)] hover:bg-[var(--color-surface-tertiary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] flex items-center justify-center transition flex-shrink-0"
               aria-label="Close"
+              title="Close Profile"
             >
               ✕
             </button>
           </div>
 
-          {/* Profile Form */}
-          <form onSubmit={handleSave} className="mt-5 space-y-4">
+          {/* Scrollable Form Body */}
+          <form id="student-profile-form" onSubmit={handleSave} className="overflow-y-auto p-4 sm:p-6 space-y-4 flex-1">
             {/* Student Name */}
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)] mb-1.5">
@@ -276,40 +277,41 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ isOpen
                 className="w-full bg-[var(--color-surface-secondary)] border border-[var(--color-border)] rounded-xl px-3.5 py-2.5 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-cyan-400 transition"
               />
             </div>
+          </form>
 
-            {/* Action Buttons */}
-            <div className="pt-3 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-[var(--color-border)]">
+          {/* Sticky Modal Bottom Action Footer — ALWAYS 100% ACCESSIBLE */}
+          <div className="p-4 sm:p-5 border-t border-[var(--color-border)] bg-[var(--color-surface-primary)]/95 backdrop-blur-md sticky bottom-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={async () => {
+                if (window.confirm("Are you sure you want to sign out?")) {
+                  await logout();
+                  onClose();
+                }
+              }}
+              className="w-full sm:w-auto px-4 py-2 text-xs font-bold text-red-400 hover:text-red-300 rounded-xl hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition"
+            >
+              Sign Out
+            </button>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <button
                 type="button"
-                onClick={async () => {
-                  if (window.confirm("Are you sure you want to sign out?")) {
-                    await logout();
-                    onClose();
-                  }
-                }}
-                className="w-full sm:w-auto px-4 py-2.5 text-xs font-bold text-red-400 hover:text-red-300 rounded-xl hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition"
+                onClick={onClose}
+                className="flex-1 sm:flex-none px-4 py-2 text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-[var(--color-surface-secondary)] rounded-xl hover:bg-[var(--color-surface-tertiary)] transition"
               >
-                Sign Out
+                Cancel
               </button>
-
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="flex-1 sm:flex-none px-4 py-2.5 text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-[var(--color-surface-secondary)] rounded-xl hover:bg-[var(--color-surface-tertiary)] transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="flex-1 sm:flex-none px-6 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-cyan-500 via-sky-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 rounded-xl shadow-lg shadow-cyan-500/25 transition active:scale-95 flex items-center justify-center gap-2"
-                >
-                  {isSaving ? <Spinner className="w-4 h-4" /> : <span>Save Profile Details</span>}
-                </button>
-              </div>
+              <button
+                type="submit"
+                form="student-profile-form"
+                disabled={isSaving}
+                className="flex-1 sm:flex-none px-6 py-2 text-xs font-bold text-white bg-gradient-to-r from-cyan-500 via-sky-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 rounded-xl shadow-lg shadow-cyan-500/25 transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {isSaving ? <Spinner className="w-4 h-4" /> : <span>Save Profile Details</span>}
+              </button>
             </div>
-          </form>
+          </div>
         </motion.div>
       </div>
     </AnimatePresence>
