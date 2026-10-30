@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import Spinner from './Spinner';
@@ -64,6 +65,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ isOpen
   }, [profile]);
 
   if (!isOpen) return null;
+  if (typeof document === 'undefined') return null;
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,26 +104,26 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ isOpen
     return parts[0].slice(0, 2).toUpperCase();
   };
 
-  return (
+  return createPortal(
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-md p-3 sm:p-6 flex items-start sm:items-center justify-center pt-16 sm:pt-14 pb-10 animate-fade-in">
-        {/* Backdrop click dismiss */}
-        <div className="fixed inset-0 -z-10" onClick={onClose} />
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md animate-fade-in">
+        {/* Full screen backdrop click dismiss */}
+        <div className="fixed inset-0" onClick={onClose} />
 
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 15 }}
+          initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 15 }}
+          exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ duration: 0.2 }}
-          className="relative z-10 w-full max-w-xl max-h-[85dvh] flex flex-col rounded-3xl bg-[var(--color-surface-primary)] border border-[var(--color-border)] shadow-2xl text-[var(--color-text-primary)] overflow-hidden"
+          className="relative z-10 w-full max-w-xl max-h-[85vh] flex flex-col rounded-3xl bg-[var(--color-surface-primary)] border border-[var(--color-border)] shadow-2xl text-[var(--color-text-primary)] overflow-hidden"
         >
           {/* Ambient Glow */}
           <div className="absolute -top-16 -right-16 w-40 h-40 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
 
-          {/* Sticky Modal Top Header — ALWAYS 100% VISIBLE & NEVER CLIPPED */}
-          <div className="p-4 sm:p-6 pb-4 border-b border-[var(--color-border)] bg-[var(--color-surface-primary)]/95 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between">
+          {/* Sticky Modal Top Header */}
+          <div className="p-4 sm:p-5 border-b border-[var(--color-border)] bg-[var(--color-surface-primary)]/95 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl bg-gradient-to-tr from-cyan-500 via-sky-500 to-indigo-600 text-white font-black text-base sm:text-lg flex items-center justify-center shadow-lg border-2 border-white/20 flex-shrink-0">
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 via-sky-500 to-indigo-600 text-white font-black text-base sm:text-lg flex items-center justify-center shadow-lg border-2 border-white/20 flex-shrink-0">
                 {getInitials(fullName || profile?.email || 'Student')}
               </div>
               <div>
@@ -314,7 +316,8 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ isOpen
           </div>
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 
