@@ -285,7 +285,7 @@ const DocumentChat: React.FC = () => {
                                     </button>
                                 </div>
                                 <div className="prose prose-invert prose-xs max-w-none text-xs text-[var(--color-text-secondary)] leading-relaxed">
-                                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
+                                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[[rehypeKatex, { output: 'html', throwOnError: false, strict: false }]]}>
                                         {summary}
                                     </ReactMarkdown>
                                 </div>
@@ -317,7 +317,7 @@ const DocumentChat: React.FC = () => {
                                                 : 'bg-[var(--color-surface-secondary)]/90 border border-[var(--color-border)] text-[var(--color-text-primary)] rounded-bl-xs'
                                         }`}
                                     >
-                                        <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
+                                        <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[[rehypeKatex, { output: 'html', throwOnError: false, strict: false }]]}>
                                             {msg.text}
                                         </ReactMarkdown>
                                     </div>

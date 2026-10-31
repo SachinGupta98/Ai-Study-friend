@@ -83,7 +83,7 @@ const QuizModal: React.FC<QuizModalProps> = ({ quiz, curriculum, subject, onClos
                         <div className="space-y-4">
                             {/* Question text */}
                             <div className="text-sm md:text-base font-semibold text-[var(--color-text-primary)] leading-relaxed">
-                                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[[rehypeKatex, { output: 'html', throwOnError: false, strict: false }]]}>
                                     {currentQuestion.question}
                                 </ReactMarkdown>
                             </div>

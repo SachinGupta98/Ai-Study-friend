@@ -34,7 +34,7 @@ function applySpacedRepetition(card: Flashcard, quality: 0 | 1 | 2 | 3): Flashca
 const CardMarkdown: React.FC<{ content: string }> = ({ content }) => (
     <ReactMarkdown
         remarkPlugins={[remarkMath]}
-        rehypePlugins={[rehypeKatex]}
+        rehypePlugins={[[rehypeKatex, { output: 'html', throwOnError: false, strict: false }]]}
         className="text-sm leading-relaxed"
     >
         {content}

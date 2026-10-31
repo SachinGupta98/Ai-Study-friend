@@ -239,8 +239,9 @@
       .prose tbody tr:hover { background-color: var(--color-surface-secondary); }
       .dark .prose tbody tr:hover { background-color: rgba(255, 255, 255, 0.035); }
 
-      /* KaTeX font-size adjustment */
+      /* KaTeX font-size adjustment & hide duplicate screen-reader MathML */
       .katex { font-size: 1.1em !important; }
+      .katex-mathml { display: none !important; }
 
       /* ── Mobile sidebar overlay ─────────────────────────────────── */
       @media (max-width: 768px) {

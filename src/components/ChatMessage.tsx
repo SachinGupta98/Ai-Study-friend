@@ -16,16 +16,42 @@ import toast from 'react-hot-toast';
 
 /**
  * Normalizes LaTeX math text from AI responses:
- * 1. Cleans up broken model outputs like $70\text{k} -> $70k
- * 2. Escapes monetary amounts ($70k, $100, $150k) with \$ so remark-math does not mistake currency for math
- * 3. Preserves legitimate inline math ($...$) and block math ($$...$$)
+ * 1. Converts display math blocks \[ ... \] into $$ ... $$
+ * 2. Converts inline math \( ... \) into $ ... $
+ * 3. Converts bracketed LaTeX blocks [ \begin{aligned}... ] or [ \boxed{...} ] or [ 2as = ... ] into $$ ... $$
+ * 4. Wraps naked standalone lines containing LaTeX commands (\frac, \sqrt, etc.) in $$ ... $$
+ * 5. Escapes monetary currency amounts ($70k, $95k, $110k - $150k) safely without corrupting physics/math units ($2\ \text{m}$)
  */
 export const sanitizeLatexContent = (text: string): string => {
     if (!text) return '';
-    // Fix $70\text{k} or $95\text{k} into $70k
-    let cleaned = text.replace(/\$(\d+(?:\.\d+)?)\\text\{([a-zA-Z]+)\}/g, '$$$1$2');
-    // Escape monetary currency dollar signs immediately preceding numbers or ranges (e.g. $70k, $110 - $150k)
-    cleaned = cleaned.replace(/(^|[^\\])\$(\d[\d,.]*(?:k|m|b|K|M|B)?(?:\b|\s*-\s*\$?\d[\d,.]*(?:k|m|b|K|M|B)?\b))/g, '$1\\$$2');
+    let cleaned = text;
+
+    // 1. Fix broken model currency like $70\text{k} into $70k
+    cleaned = cleaned.replace(/\$(\d+(?:\.\d+)?)\\text\{([a-zA-Z]+)\}/g, '$$$1$2');
+
+    // 2. Escape monetary currency signs (e.g. $70k, $95k, $110k - $150k) using a replacer function
+    cleaned = cleaned.replace(/(^|[^\\])\$(\d[\d,]*(?:\.\d+)?(?:k|K|M|B)\b)/g, (_, p1, p2) => `${p1}\\$${p2}`);
+    cleaned = cleaned.replace(/(^|[^\\])\$(\d[\d,]*)\s*-\s*\$(\d[\d,]*)(?=\s|$|[,\.])/g, (_, p1, p2, p3) => `${p1}\\$${p2} - \\$${p3}`);
+
+    // 3. Convert display math blocks \[ ... \] into $$ ... $$
+    cleaned = cleaned.replace(/\\\[([\s\S]*?)\\\]/g, (_, math) => `\n\n$$\n${math.trim()}\n$$\n\n`);
+
+    // 4. Convert inline math \( ... \) into $ ... $
+    cleaned = cleaned.replace(/\\\(([\s\S]*?)\\\)/g, (_, math) => `$${math.trim()}$`);
+
+    // 5. Convert bracketed LaTeX blocks [ \begin... ] or [ \boxed... ] or [ 2as = ... ] into $$ ... $$
+    cleaned = cleaned.replace(/(?:^|\n)\s*\[\s*([\s\S]*?(?:\\begin|\\boxed|\\frac|\\tfrac|\\sqrt|\\quad|\\left|\^|_|\\text|\\int|\\sum|\\cdot|\\times)[\s\S]*?)\s*\]\s*(?=\n|$)/g, (_, math) => `\n\n$$\n${math.trim()}\n$$\n\n`);
+
+    // 6. If a standalone line has raw math commands (\frac, \sqrt, etc.) but NO $ anywhere in it, wrap in $$...$$
+    cleaned = cleaned.replace(/^([ \t]*)([^$\n`]*\\[a-zA-Z]+(?:\{[^}\n]*\})*[^$\n`]*)$/gm, (match, indent, line) => {
+        if (!line.includes('$') && !line.includes('$$') && !line.startsWith('#') && !line.startsWith('>') && !line.includes('\\begin') && !line.includes('\\end')) {
+            if (/(?:\\frac|\\tfrac|\\sqrt|\\int|\\sum|\\vec|\\partial|\\cdot|\\times|\\pm|\\mp)\b/.test(line)) {
+                return `${indent}\n$$\n${line.trim()}\n$$\n`;
+            }
+        }
+        return match;
+    });
+
     return cleaned;
 };
 
@@ -94,7 +120,7 @@ const PreWithCopy: React.FC<React.ComponentPropsWithoutRef<'pre'>> = ({ children
 const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => (
     <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]]}
+        rehypePlugins={[[rehypeKatex, { output: 'html', throwOnError: false, strict: false }]]}
         components={{
             pre: PreWithCopy,
             table: ({ node, ...props }) => (
